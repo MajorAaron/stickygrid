@@ -1,4 +1,6 @@
 import AppKit
 
-// Placeholder bootstrap — replaced in M2.
-print("StickyGrid app shell not built yet")
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()
