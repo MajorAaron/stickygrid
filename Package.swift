@@ -19,5 +19,9 @@ let package = Package(
             name: "StickyGridCoreTests",
             dependencies: ["StickyGridCore"]
         ),
+        .testTarget(
+            name: "StickyGridAppTests",
+            dependencies: ["StickyGridApp"]
+        ),
     ]
 )

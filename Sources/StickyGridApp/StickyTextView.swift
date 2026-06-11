@@ -47,6 +47,78 @@ final class StickyTextView: NSTextView {
         didChangeText()
     }
 
+    // MARK: Auto first-line header
+    // The first paragraph always renders as a header: bold, headerScale × the
+    // note's body size. restyleHeader() re-asserts this invariant after every
+    // edit; it never calls didChangeText, so it cannot recurse. Demotion of
+    // oversized runs below the header is safe because the app has no per-run
+    // size editing — only header-derived text is ever oversized.
+
+    static let headerScale: CGFloat = 1.3
+
+    /// The note's body font; the header style is derived from it. Set by
+    /// RichTextEditor at creation and by RichTextController.applyFont.
+    var bodyFont: NSFont = .userFont(ofSize: 14) ?? .systemFont(ofSize: 14) {
+        didSet { restyleHeader() }
+    }
+
+    override func didChangeText() {
+        super.didChangeText()
+        restyleHeader()
+    }
+
+    func restyleHeader() {
+        guard let storage = textStorage else { return }
+        let fontManager = NSFontManager.shared
+        let headerSize = (bodyFont.pointSize * Self.headerScale).rounded()
+        let text = storage.string as NSString
+
+        func headerVariant(of font: NSFont) -> NSFont {
+            fontManager.convert(fontManager.convert(font, toSize: headerSize),
+                                toHaveTrait: .boldFontMask)
+        }
+
+        if text.length > 0 {
+            let header = text.paragraphRange(for: NSRange(location: 0, length: 0))
+            storage.beginEditing()
+            storage.enumerateAttribute(.font, in: header) { value, subrange, _ in
+                let font = (value as? NSFont) ?? bodyFont
+                storage.addAttribute(.font, value: headerVariant(of: font),
+                                     range: subrange)
+            }
+            let rest = NSRange(location: NSMaxRange(header),
+                               length: text.length - NSMaxRange(header))
+            if rest.length > 0 {
+                storage.enumerateAttribute(.font, in: rest) { value, subrange, _ in
+                    guard let font = value as? NSFont,
+                          font.pointSize > bodyFont.pointSize else { return }
+                    storage.addAttribute(
+                        .font,
+                        value: fontManager.convert(font, toSize: bodyFont.pointSize),
+                        range: subrange)
+                }
+            }
+            storage.endEditing()
+        }
+
+        // Keep typing attributes in step with the caret's paragraph so newly
+        // typed text never appears at the wrong size.
+        let caret = min(selectedRange().location, text.length)
+        let inHeader = text.length == 0
+            || text.paragraphRange(for: NSRange(location: caret, length: 0)).location == 0
+        let typingFont = (typingAttributes[.font] as? NSFont) ?? bodyFont
+        if inHeader {
+            typingAttributes[.font] = headerVariant(of: typingFont)
+        } else if typingFont.pointSize > bodyFont.pointSize {
+            // Inherited from the header: body size, bold off — fresh typing on
+            // a body line should look like body text. User-applied bold is at
+            // body size and never enters this branch.
+            let demoted = fontManager.convert(typingFont, toSize: bodyFont.pointSize)
+            typingAttributes[.font] = fontManager.convert(demoted,
+                                                          toNotHaveTrait: .boldFontMask)
+        }
+    }
+
     // MARK: Strikethrough
 
     @objc func toggleStrikethrough(_ sender: Any?) {
