@@ -50,7 +50,7 @@ struct NoteToolbarView: View {
                 viewModel.pinned.toggle()
                 viewModel.onAppearanceChanged()
             }
-            toolbarButton("square.grid.2x2", help: "Tile Notes") { viewModel.onTile() }
+            toolbarButton("square.grid.2x2", help: "Arrange Notes") { viewModel.onTile() }
             toolbarButton("trash", help: "Delete Note") { viewModel.onDelete() }
         }
     }

@@ -50,7 +50,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         let id = record.id
         viewModel.onNewNote = { [weak self] in self?.newNote(nil) }
         viewModel.onDelete = { [weak self] in self?.requestDelete(id) }
-        viewModel.onTile = { [weak self] in self?.tileNotes(nil) }
+        viewModel.onTile = { [weak self] in self?.arrangeNotes(nil) }
         viewModel.onAppearanceChanged = { [weak self] in self?.appearanceChanged(id) }
         viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
 
@@ -151,10 +151,26 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         store.markTextChanged(id, snippet: String(firstLine.prefix(40)))
     }
 
-    // MARK: Tiling
+    // MARK: Arranging
 
-    @objc func tileNotes(_ sender: Any?) {
+    private let layoutPalette = LayoutPaletteController()
+    private static let lastLayoutKey = "lastUsedLayout"
+
+    @objc func arrangeNotes(_ sender: Any?) {
+        if layoutPalette.isVisible {
+            layoutPalette.applyHighlighted()
+            return
+        }
         guard let screen = NSApp.keyWindow?.screen ?? NSScreen.main else { return }
+        let last = UserDefaults.standard.string(forKey: Self.lastLayoutKey)
+            .flatMap(NoteLayout.init(rawValue:)) ?? .mosaic
+        layoutPalette.show(on: screen, highlighting: last) { [weak self] layout in
+            UserDefaults.standard.set(layout.rawValue, forKey: Self.lastLayoutKey)
+            self?.arrange(using: layout, on: screen)
+        }
+    }
+
+    private func arrange(using layout: NoteLayout, on screen: NSScreen) {
         let onScreen = panels.filter { _, panel in
             let mid = CGPoint(x: panel.frame.midX, y: panel.frame.midY)
             return (panel.screen ?? NSScreen.main) == screen
@@ -163,8 +179,22 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         guard !onScreen.isEmpty else { return }
 
         let entries = onScreen.sorted { $0.value.frame.minX < $1.value.frame.minX }
-        let weights = entries.map { Double($0.value.frame.width * $0.value.frame.height) }
-        let rects = Treemap.layout(weights: weights, in: screen.visibleFrame)
+        let sizes = entries.map { $0.value.frame.size }
+        let bounds = screen.visibleFrame
+
+        let rects: [CGRect]
+        switch layout {
+        case .mosaic:
+            rects = Treemap.layout(
+                weights: sizes.map { Double($0.width * $0.height) }, in: bounds)
+        case .evenGrid:
+            rects = GridLayouts.evenGrid(count: entries.count, in: bounds)
+        case .columns:
+            rects = GridLayouts.columns(sizes: sizes, in: bounds)
+        case .shuffle:
+            var rng = SystemRandomNumberGenerator()
+            rects = GridLayouts.scatter(sizes: sizes, in: bounds, using: &rng)
+        }
 
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.3

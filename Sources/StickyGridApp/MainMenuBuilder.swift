@@ -67,7 +67,7 @@ enum MainMenuBuilder {
 
         // Window
         let windowMenu = NSMenu(title: "Window")
-        windowMenu.addItem(targeted("Tile Notes", #selector(WindowManager.tileNotes(_:)),
+        windowMenu.addItem(targeted("Arrange Notes…", #selector(WindowManager.arrangeNotes(_:)),
                                     "t", windowManager))
         windowMenu.addItem(.separator())
         windowMenu.addItem(withTitle: "Minimize",
