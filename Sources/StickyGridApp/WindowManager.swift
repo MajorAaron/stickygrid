@@ -128,7 +128,10 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
 
         if record.colorID != viewModel.colorID {
             (panel.contentView as? NoteContainerView)?.setColor(viewModel.colorID)
-            viewModel.textController.applyTextColor(viewModel.colorID.foreground)
+        }
+        if record.colorID != viewModel.colorID || record.ink != viewModel.ink {
+            viewModel.textController.applyTextColor(
+                viewModel.ink.resolved(on: viewModel.colorID))
         }
         if record.fontName != viewModel.fontName || record.fontSize != viewModel.fontSize {
             viewModel.textController.applyFont(
@@ -137,6 +140,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         panel.level = viewModel.pinned ? .floating : .normal
 
         record.colorID = viewModel.colorID
+        record.ink = viewModel.ink
         record.fontName = viewModel.fontName
         record.fontSize = viewModel.fontSize
         record.pinned = viewModel.pinned

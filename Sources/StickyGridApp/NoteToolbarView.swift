@@ -56,28 +56,53 @@ struct NoteToolbarView: View {
     }
 
     private var paletteRow: some View {
-        Group {
-            ForEach(NoteColor.allCases, id: \.self) { color in
-                Button {
-                    viewModel.colorID = color
-                    viewModel.onAppearanceChanged()
-                    showingPalette = false
-                } label: {
-                    Circle()
-                        .fill(Color(color.background))
-                        .overlay(
-                            Circle().strokeBorder(
-                                color == viewModel.colorID
-                                    ? Color(color.foreground).opacity(0.8)
-                                    : .black.opacity(0.18),
-                                lineWidth: color == viewModel.colorID ? 2 : 1)
-                        )
-                        .frame(width: 16, height: 16)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                ForEach(NoteColor.allCases, id: \.self) { color in
+                    Button {
+                        viewModel.colorID = color
+                        viewModel.onAppearanceChanged()
+                        showingPalette = false
+                    } label: {
+                        Circle()
+                            .fill(Color(color.background))
+                            .overlay(
+                                Circle().strokeBorder(
+                                    color == viewModel.colorID
+                                        ? Color(color.foreground).opacity(0.8)
+                                        : .black.opacity(0.18),
+                                    lineWidth: color == viewModel.colorID ? 2 : 1)
+                            )
+                            .frame(width: 16, height: 16)
+                    }
+                    .buttonStyle(.plain)
+                    .help(color.rawValue.capitalized)
                 }
-                .buttonStyle(.plain)
-                .help(color.rawValue.capitalized)
+                toolbarButton("xmark", help: "Close Palette") { showingPalette = false }
             }
-            toolbarButton("xmark", help: "Close Palette") { showingPalette = false }
+            HStack(spacing: 12) {
+                ForEach(NoteInk.allCases, id: \.self) { ink in
+                    Button {
+                        viewModel.ink = ink
+                        viewModel.onAppearanceChanged()
+                        showingPalette = false
+                    } label: {
+                        Text("A")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color(ink.resolved(on: viewModel.colorID)))
+                            .frame(width: 16, height: 16)
+                            .overlay(
+                                Circle().strokeBorder(
+                                    ink == viewModel.ink
+                                        ? Color(ink.resolved(on: viewModel.colorID)).opacity(0.8)
+                                        : .black.opacity(0.18),
+                                    lineWidth: ink == viewModel.ink ? 2 : 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help(ink == .auto ? "Auto Text Color" : "\(ink.rawValue.capitalized) Text")
+                }
+            }
         }
     }
 

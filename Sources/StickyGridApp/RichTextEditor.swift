@@ -34,7 +34,7 @@ struct RichTextEditor: NSViewRepresentable {
 
         let font = NSFont(name: viewModel.fontName, size: viewModel.fontSize)
             ?? NSFont.systemFont(ofSize: viewModel.fontSize)
-        let color = NSColor(viewModel.colorID.foreground)
+        let color = NSColor(viewModel.ink.resolved(on: viewModel.colorID))
         textView.font = font
         textView.textColor = color
         textView.insertionPointColor = color

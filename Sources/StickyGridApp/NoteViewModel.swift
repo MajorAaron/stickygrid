@@ -10,6 +10,7 @@ final class NoteViewModel: Identifiable {
     var fontName: String
     var fontSize: Double
     var pinned: Bool
+    var ink: NoteInk
 
     @ObservationIgnored let textController = RichTextController()
     /// RTF loaded from disk before the text view exists; consumed in makeNSView.
@@ -28,5 +29,6 @@ final class NoteViewModel: Identifiable {
         fontName = record.fontName
         fontSize = record.fontSize
         pinned = record.pinned
+        ink = record.ink
     }
 }
