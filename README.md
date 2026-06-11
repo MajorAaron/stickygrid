@@ -13,6 +13,8 @@ fills your screen.
 - 8 classic pastel colors, switchable per note from the hover toolbar
 - Rich text: **bold** ⌘B, *italic* ⌘I, underline ⌘U, strikethrough ⇧⌘X,
   bullet lists ⇧⌘L (with automatic continuation on return)
+- The first line of every note is its title — automatically bold and larger,
+  so a wall of notes stays scannable
 - Per-note font family and size
 - Pin a note to float above every other app
 - One-click mosaic tiling (⌘T) — notes fill the screen, sized by their current areas
