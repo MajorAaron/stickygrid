@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func openHardcodedNote() {
         let panel = NotePanel(frame: NSRect(x: 400, y: 400, width: 340, height: 260))
         let container = NoteContainerView(color: .yellow)
-        let hosting = DraggableHostingView(rootView: NoteContentView())
+        let hosting = DraggableHostingView(NoteContentView())
         hosting.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(hosting)
         NSLayoutConstraint.activate([
