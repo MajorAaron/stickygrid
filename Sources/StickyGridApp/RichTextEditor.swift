@@ -39,6 +39,7 @@ struct RichTextEditor: NSViewRepresentable {
         textView.textColor = color
         textView.insertionPointColor = color
         textView.typingAttributes = [.font: font, .foregroundColor: color]
+        textView.bodyFont = font  // didSet restyles: empty notes start in header style
 
         let scroll = NSScrollView()
         scroll.documentView = textView

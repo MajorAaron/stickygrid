@@ -42,6 +42,7 @@ final class RichTextController {
             tv.didChangeText()
         }
         tv.typingAttributes[.font] = base
+        tv.bodyFont = base  // didSet re-promotes the first paragraph at the new size
     }
 
     func applyTextColor(_ rgb: NoteColor.RGB) {
@@ -72,6 +73,7 @@ final class RichTextController {
             return
         }
         storage.setAttributedString(attributed)
+        tv.restyleHeader()  // setAttributedString skips didChangeText; also upgrades pre-header notes
     }
 
     func plainText() -> String {
