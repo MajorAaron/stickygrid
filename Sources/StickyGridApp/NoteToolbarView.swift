@@ -45,6 +45,7 @@ struct NoteToolbarView: View {
                 showingPalette = true
             }
             fontMenu
+            aiMenu
             toolbarButton(viewModel.pinned ? "pin.fill" : "pin",
                           help: viewModel.pinned ? "Unpin" : "Keep on Top") {
                 viewModel.pinned.toggle()
@@ -144,6 +145,28 @@ struct NoteToolbarView: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Font")
+    }
+
+    private var aiMenu: some View {
+        Menu {
+            ForEach(NoteAIAction.allCases) { action in
+                Button(action.title) { viewModel.onAIAction(action) }
+            }
+        } label: {
+            if viewModel.aiBusy {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 18, height: 18)
+            } else {
+                Image(systemName: "sparkles")
+            }
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .disabled(viewModel.aiBusy)
+        .help("AI Assist")
     }
 
     private func toolbarButton(

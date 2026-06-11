@@ -79,4 +79,23 @@ final class RichTextController {
     func plainText() -> String {
         textView?.string ?? ""
     }
+
+    /// Replaces the whole note body with plain text styled in the note's
+    /// current font and ink. Goes through shouldChangeText/didChangeText so
+    /// the swap is undoable and the header restyle + autosave fire.
+    func replaceAllText(with plain: String) {
+        guard let tv = textView, let storage = tv.textStorage else { return }
+        let full = NSRange(location: 0, length: storage.length)
+        guard tv.shouldChangeText(in: full, replacementString: plain) else { return }
+        let color: NSColor = (tv.typingAttributes[.foregroundColor] as? NSColor)
+            ?? tv.insertionPointColor ?? .textColor
+        storage.beginEditing()
+        storage.replaceCharacters(
+            in: full,
+            with: NSAttributedString(
+                string: plain,
+                attributes: [.font: tv.bodyFont, .foregroundColor: color]))
+        storage.endEditing()
+        tv.didChangeText()
+    }
 }

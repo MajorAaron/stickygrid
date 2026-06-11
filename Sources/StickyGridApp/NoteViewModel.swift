@@ -11,6 +11,8 @@ final class NoteViewModel: Identifiable {
     var fontSize: Double
     var pinned: Bool
     var ink: NoteInk
+    /// True while an AI transform of this note is in flight.
+    var aiBusy = false
 
     @ObservationIgnored let textController = RichTextController()
     /// RTF loaded from disk before the text view exists; consumed in makeNSView.
@@ -22,6 +24,7 @@ final class NoteViewModel: Identifiable {
     @ObservationIgnored var onTile: () -> Void = {}
     @ObservationIgnored var onAppearanceChanged: () -> Void = {}
     @ObservationIgnored var onTextChanged: () -> Void = {}
+    @ObservationIgnored var onAIAction: (NoteAIAction) -> Void = { _ in }
 
     init(record: NoteRecord) {
         id = record.id

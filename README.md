@@ -27,6 +27,8 @@ fills your screen.
 - Per-note text ink: six marker colors plus an auto ink tuned to each background
 - Capture from anywhere: a `stickygrid://` URL scheme, a Services menu entry,
   and ⇧⌘N for the clipboard (see below)
+- AI Assist: summarize a note, turn it into a checklist, or polish the writing
+  (see below)
 
 ## Capture notes from other apps
 
@@ -50,6 +52,25 @@ Three ways to get text into a sticky without switching to StickyGrid first:
 The URL scheme and Services entry register when the built `StickyGrid.app` is
 first launched (they're declared in its Info.plist, so `swift run` alone won't
 register them).
+
+## AI Assist
+
+The ✨ sparkles button on the hover toolbar (or the **AI** menu) runs the
+focused note through one of three transforms:
+
+- **Summarize** — condenses the note to its essential points
+- **Turn Into Checklist** — one `- ` task per line, compound items split
+- **Polish Writing** — fixes spelling and grammar, preserving tone and structure
+
+The first line stays the note's title, the result replaces the body in the
+note's current font and ink, and the swap is undoable with ⌘Z.
+
+Transforms call the Anthropic API directly (model `claude-opus-4-8` by
+default; override with `defaults write` key `AIModel`). The API key is read
+from the `ANTHROPIC_API_KEY` environment variable, or from
+`~/.config/stickygrid/anthropic-api-key` — set it in-app via
+**AI → Set Anthropic API Key…**. Nothing is sent anywhere until you run a
+transform.
 
 ## Build & run
 

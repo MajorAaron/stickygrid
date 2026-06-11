@@ -70,6 +70,19 @@ enum MainMenuBuilder {
         formatMenu.addItem(bullets)
         main.addItem(submenu(formatMenu, title: "Format"))
 
+        // AI — transforms run on the focused note.
+        let aiMenu = NSMenu(title: "AI")
+        aiMenu.addItem(targeted("Summarize Note",
+                                #selector(WindowManager.aiSummarizeNote(_:)), "", windowManager))
+        aiMenu.addItem(targeted("Turn Into Checklist",
+                                #selector(WindowManager.aiChecklistNote(_:)), "", windowManager))
+        aiMenu.addItem(targeted("Polish Writing",
+                                #selector(WindowManager.aiPolishNote(_:)), "", windowManager))
+        aiMenu.addItem(.separator())
+        aiMenu.addItem(targeted("Set Anthropic API Key…",
+                                #selector(WindowManager.setAnthropicAPIKey(_:)), "", windowManager))
+        main.addItem(submenu(aiMenu, title: "AI"))
+
         // Window
         let windowMenu = NSMenu(title: "Window")
         windowMenu.addItem(targeted("Arrange Notes…", #selector(WindowManager.arrangeNotes(_:)),

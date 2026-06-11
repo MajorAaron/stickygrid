@@ -81,6 +81,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onTile = { [weak self] in self?.arrangeNotes(nil) }
         viewModel.onAppearanceChanged = { [weak self] in self?.appearanceChanged(id) }
         viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
+        viewModel.onAIAction = { [weak self] action in self?.runAI(action, on: id) }
 
         let panel = NotePanel(frame: record.frame)
         let container = NoteContainerView(color: record.colorID)
@@ -181,6 +182,81 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             .split(separator: "\n", omittingEmptySubsequences: true)
             .first.map(String.init) ?? ""
         store.markTextChanged(id, snippet: String(firstLine.prefix(40)))
+    }
+
+    // MARK: AI Assist
+
+    @objc func aiSummarizeNote(_ sender: Any?) { runAIOnFrontNote(.summarize) }
+    @objc func aiChecklistNote(_ sender: Any?) { runAIOnFrontNote(.checklist) }
+    @objc func aiPolishNote(_ sender: Any?) { runAIOnFrontNote(.polish) }
+
+    private func runAIOnFrontNote(_ action: NoteAIAction) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        runAI(action, on: id)
+    }
+
+    private func runAI(_ action: NoteAIAction, on id: UUID) {
+        guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
+        let text = viewModel.textController.plainText()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { NSSound.beep(); return }
+        guard NoteAI.apiKey() != nil else {
+            promptForAPIKey()
+            return
+        }
+
+        viewModel.aiBusy = true
+        Task { @MainActor [weak self] in
+            defer { viewModel.aiBusy = false }
+            do {
+                let result = try await NoteAI.transform(text, action: action)
+                viewModel.textController.replaceAllText(with: result)
+            } catch {
+                self?.presentAIError(error, on: id)
+            }
+        }
+    }
+
+    private func presentAIError(_ error: Error, on id: UUID) {
+        let alert = NSAlert()
+        alert.messageText = "AI Assist failed"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        if let panel = panels[id] {
+            alert.beginSheetModal(for: panel)
+        } else {
+            alert.runModal()
+        }
+    }
+
+    @objc func setAnthropicAPIKey(_ sender: Any?) {
+        promptForAPIKey()
+    }
+
+    private func promptForAPIKey() {
+        let alert = NSAlert()
+        alert.messageText = "Set Anthropic API Key"
+        alert.informativeText = """
+            AI Assist calls the Anthropic API directly. Paste an API key from \
+            console.anthropic.com; it is stored locally in \
+            ~/.config/stickygrid/anthropic-api-key (never synced). \
+            The ANTHROPIC_API_KEY environment variable takes precedence.
+            """
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 300, height: 24))
+        field.placeholderString = "sk-ant-…"
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let key = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { return }
+        do {
+            try NoteAI.saveKey(key)
+        } catch {
+            let failure = NSAlert(error: error)
+            failure.runModal()
+        }
     }
 
     // MARK: Arranging
