@@ -24,6 +24,32 @@ fills your screen.
   no accounts, no database.
 - Closing a note deletes it (with a confirmation if it has text), like real Stickies.
   The Notes menu lists every note so none get lost.
+- Per-note text ink: six marker colors plus an auto ink tuned to each background
+- Capture from anywhere: a `stickygrid://` URL scheme, a Services menu entry,
+  and ⇧⌘N for the clipboard (see below)
+
+## Capture notes from other apps
+
+Three ways to get text into a sticky without switching to StickyGrid first:
+
+- **URL scheme** — from Shortcuts, Raycast, Alfred, a browser bookmarklet, or
+  `open` in a terminal:
+
+  ```bash
+  open "stickygrid://new?title=Groceries&text=milk%0Aeggs&color=pink"
+  ```
+
+  `text` (alias `body`) is the percent-encoded note body, `title` becomes the
+  first line (auto-styled as the header), and `color` is one of the eight
+  palette names. A bare `stickygrid://new` opens an empty note.
+- **Services menu** — select text in any app, then
+  *(app menu) → Services → New Sticky Note from Selection*.
+- **Clipboard** — ⇧⌘N (File → New Note from Clipboard) pastes whatever is on
+  the clipboard into a new note.
+
+The URL scheme and Services entry register when the built `StickyGrid.app` is
+first launched (they're declared in its Info.plist, so `swift run` alone won't
+register them).
 
 ## Build & run
 

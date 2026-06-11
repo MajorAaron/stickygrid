@@ -5,6 +5,9 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: NoteStore!
     private var windowManager: WindowManager!
+    private var servicesProvider: ServicesProvider?
+    /// stickygrid:// URLs can arrive before didFinishLaunching; replayed after.
+    private var pendingCaptureURLs: [URL] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
@@ -16,8 +19,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowManager = WindowManager(store: store)
         NSApp.mainMenu = MainMenuBuilder.build(windowManager: windowManager)
 
+        servicesProvider = ServicesProvider(windowManager: windowManager)
+        NSApp.servicesProvider = servicesProvider
+
         windowManager.restoreAll()
         NSApp.activate(ignoringOtherApps: true)
+
+        let queued = pendingCaptureURLs
+        pendingCaptureURLs = []
+        handleCapture(urls: queued)
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard windowManager != nil else {
+            pendingCaptureURLs.append(contentsOf: urls)
+            return
+        }
+        handleCapture(urls: urls)
+    }
+
+    private func handleCapture(urls: [URL]) {
+        for url in urls {
+            guard let request = CaptureRequest.from(url: url) else {
+                NSLog("StickyGrid: ignoring unrecognized URL \(url)")
+                continue
+            }
+            windowManager.createNote(from: request)
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

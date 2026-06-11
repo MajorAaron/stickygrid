@@ -41,12 +41,40 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         openWindow(for: record, focus: true)
     }
 
-    private func openWindow(for record: NoteRecord, focus: Bool) {
+    /// Creates a note from outside the app (URL scheme, Services, clipboard).
+    func createNote(from request: CaptureRequest) {
+        var record = NoteRecord(frame: cascadeFrame())
+        if let color = request.color { record.colorID = color }
+        record.titleSnippet = request.titleSnippet
+        store.upsert(record)
+        openWindow(for: record, focus: true,
+                   initialText: request.text.isEmpty ? nil : request.text)
+        if !request.text.isEmpty {
+            // The text arrived pre-typed; mark it dirty so the RTF persists
+            // even if the user never edits the note.
+            store.markTextChanged(record.id, snippet: request.titleSnippet)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc func newNoteFromClipboard(_ sender: Any?) {
+        guard let request = CaptureRequest.from(
+            plainText: NSPasteboard.general.string(forType: .string)) else {
+            NSSound.beep()
+            return
+        }
+        createNote(from: request)
+    }
+
+    private func openWindow(for record: NoteRecord, focus: Bool, initialText: String? = nil) {
         var record = record
         record.frame = rescueFrameIfOffScreen(record.frame)
 
         let viewModel = NoteViewModel(record: record)
         viewModel.initialRTF = store.loadRTF(for: record.id)
+        if let initialText, viewModel.initialRTF.isEmpty {
+            viewModel.initialRTF = Self.rtf(from: initialText, record: record)
+        }
         let id = record.id
         viewModel.onNewNote = { [weak self] in self?.newNote(nil) }
         viewModel.onDelete = { [weak self] in self?.requestDelete(id) }
@@ -263,6 +291,21 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     }
 
     // MARK: Helpers
+
+    /// Plain captured text styled with the note's font and ink, as RTF the
+    /// editor loads like any persisted note (header restyle included).
+    private static func rtf(from text: String, record: NoteRecord) -> Data {
+        let font = NSFont(name: record.fontName, size: record.fontSize)
+            ?? NSFont.systemFont(ofSize: record.fontSize)
+        let color = NSColor(record.ink.resolved(on: record.colorID))
+        let attributed = NSAttributedString(
+            string: text,
+            attributes: [.font: font, .foregroundColor: color])
+        return attributed.rtf(
+            from: NSRange(location: 0, length: attributed.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
+            ?? Data()
+    }
 
     private func noteID(of window: NSWindow?) -> UUID? {
         guard let window else { return nil }

@@ -21,6 +21,11 @@ enum MainMenuBuilder {
         let fileMenu = NSMenu(title: "File")
         fileMenu.addItem(targeted("New Note", #selector(WindowManager.newNote(_:)),
                                   "n", windowManager))
+        let fromClipboard = targeted(
+            "New Note from Clipboard",
+            #selector(WindowManager.newNoteFromClipboard(_:)), "n", windowManager)
+        fromClipboard.keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(fromClipboard)
         fileMenu.addItem(.separator())
         fileMenu.addItem(targeted("Delete Note", #selector(WindowManager.deleteFrontNote(_:)),
                                   "w", windowManager))

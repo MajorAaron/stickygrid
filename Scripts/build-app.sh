@@ -43,6 +43,35 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.productivity</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>${BUNDLE_ID}.capture</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>stickygrid</string>
+            </array>
+        </dict>
+    </array>
+    <key>NSServices</key>
+    <array>
+        <dict>
+            <key>NSMenuItem</key>
+            <dict>
+                <key>default</key>
+                <string>New Sticky Note from Selection</string>
+            </dict>
+            <key>NSMessage</key>
+            <string>newNoteFromSelection</string>
+            <key>NSPortName</key>
+            <string>StickyGrid</string>
+            <key>NSSendTypes</key>
+            <array>
+                <string>NSStringPboardType</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
 PLIST
