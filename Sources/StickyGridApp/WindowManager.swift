@@ -1,0 +1,277 @@
+import AppKit
+import StickyGridCore
+import SwiftUI
+
+/// Owns one NotePanel per note: creation, restoration, deletion, pinning,
+/// frame tracking, and mosaic tiling.
+final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
+    private let store: NoteStore
+    private var panels: [UUID: NotePanel] = [:]
+    private var viewModels: [UUID: NoteViewModel] = [:]
+
+    init(store: NoteStore) {
+        self.store = store
+        super.init()
+        store.rtfProvider = { [weak self] id in
+            self?.viewModels[id]?.textController.rtfData()
+        }
+        store.zOrderProvider = { [weak self] in self?.currentZOrder() ?? [] }
+    }
+
+    // MARK: Lifecycle
+
+    func restoreAll() {
+        guard !store.records.isEmpty else {
+            newNote(nil)
+            return
+        }
+        // Back-most first so orderFront reproduces the stacking exactly.
+        let backToFront = store.records.values.sorted { $0.zOrder > $1.zOrder }
+        for record in backToFront {
+            openWindow(for: record, focus: false)
+        }
+        if let front = backToFront.last, let panel = panels[front.id] {
+            panel.makeKeyAndOrderFront(nil)
+        }
+    }
+
+    @objc func newNote(_ sender: Any?) {
+        let record = NoteRecord(frame: cascadeFrame())
+        store.upsert(record)
+        openWindow(for: record, focus: true)
+    }
+
+    private func openWindow(for record: NoteRecord, focus: Bool) {
+        var record = record
+        record.frame = rescueFrameIfOffScreen(record.frame)
+
+        let viewModel = NoteViewModel(record: record)
+        viewModel.initialRTF = store.loadRTF(for: record.id)
+        let id = record.id
+        viewModel.onNewNote = { [weak self] in self?.newNote(nil) }
+        viewModel.onDelete = { [weak self] in self?.requestDelete(id) }
+        viewModel.onTile = { [weak self] in self?.tileNotes(nil) }
+        viewModel.onAppearanceChanged = { [weak self] in self?.appearanceChanged(id) }
+        viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
+
+        let panel = NotePanel(frame: record.frame)
+        let container = NoteContainerView(color: record.colorID)
+        let hosting = DraggableHostingView(NoteContentView(viewModel: viewModel))
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.topAnchor.constraint(equalTo: container.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
+        panel.contentView = container
+        panel.delegate = self
+        panel.level = record.pinned ? .floating : .normal
+
+        panels[id] = panel
+        viewModels[id] = viewModel
+
+        if focus {
+            panel.makeKeyAndOrderFront(nil)
+        } else {
+            panel.orderFront(nil)
+        }
+    }
+
+    // MARK: Deletion (close = delete, like Stickies)
+
+    @objc func deleteFrontNote(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        requestDelete(id)
+    }
+
+    func requestDelete(_ id: UUID) {
+        guard let panel = panels[id], let viewModel = viewModels[id] else { return }
+        let text = viewModel.textController.plainText()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            deleteNote(id)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Delete this note?"
+        alert.informativeText = "Its text will be removed permanently."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+        alert.buttons.first?.hasDestructiveAction = true
+        alert.beginSheetModal(for: panel) { [weak self] response in
+            if response == .alertFirstButtonReturn {
+                self?.deleteNote(id)
+            }
+        }
+    }
+
+    private func deleteNote(_ id: UUID) {
+        if let panel = panels[id] {
+            panel.delegate = nil
+            panel.orderOut(nil)
+        }
+        panels[id] = nil
+        viewModels[id] = nil
+        store.remove(id)
+    }
+
+    // MARK: Note state changes
+
+    private func appearanceChanged(_ id: UUID) {
+        guard var record = store.records[id],
+              let viewModel = viewModels[id],
+              let panel = panels[id] else { return }
+
+        if record.colorID != viewModel.colorID {
+            (panel.contentView as? NoteContainerView)?.setColor(viewModel.colorID)
+            viewModel.textController.applyTextColor(viewModel.colorID.foreground)
+        }
+        if record.fontName != viewModel.fontName || record.fontSize != viewModel.fontSize {
+            viewModel.textController.applyFont(
+                family: viewModel.fontName, size: viewModel.fontSize)
+        }
+        panel.level = viewModel.pinned ? .floating : .normal
+
+        record.colorID = viewModel.colorID
+        record.fontName = viewModel.fontName
+        record.fontSize = viewModel.fontSize
+        record.pinned = viewModel.pinned
+        store.upsert(record)
+    }
+
+    private func textChanged(_ id: UUID) {
+        guard let viewModel = viewModels[id] else { return }
+        let firstLine = viewModel.textController.plainText()
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .first.map(String.init) ?? ""
+        store.markTextChanged(id, snippet: String(firstLine.prefix(40)))
+    }
+
+    // MARK: Tiling
+
+    @objc func tileNotes(_ sender: Any?) {
+        guard let screen = NSApp.keyWindow?.screen ?? NSScreen.main else { return }
+        let onScreen = panels.filter { _, panel in
+            let mid = CGPoint(x: panel.frame.midX, y: panel.frame.midY)
+            return (panel.screen ?? NSScreen.main) == screen
+                || screen.frame.contains(mid)
+        }
+        guard !onScreen.isEmpty else { return }
+
+        let entries = onScreen.sorted { $0.value.frame.minX < $1.value.frame.minX }
+        let weights = entries.map { Double($0.value.frame.width * $0.value.frame.height) }
+        let rects = Treemap.layout(weights: weights, in: screen.visibleFrame)
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.3
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            for (entry, rect) in zip(entries, rects) {
+                entry.value.animator().setFrame(rect, display: true)
+            }
+        }
+        for ((id, _), rect) in zip(entries, rects) {
+            if var record = store.records[id] {
+                record.frame = rect
+                store.upsert(record)
+            }
+        }
+    }
+
+    // MARK: Notes menu
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let sorted = store.records.values.sorted {
+            ($0.titleSnippet.isEmpty ? "Untitled" : $0.titleSnippet)
+                .localizedCaseInsensitiveCompare(
+                    $1.titleSnippet.isEmpty ? "Untitled" : $1.titleSnippet) == .orderedAscending
+        }
+        if sorted.isEmpty {
+            let item = NSMenuItem(title: "No Notes", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+            return
+        }
+        for record in sorted {
+            let title = record.titleSnippet.isEmpty ? "Untitled" : record.titleSnippet
+            let item = NSMenuItem(title: title, action: #selector(focusNote(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = record.id
+            menu.addItem(item)
+        }
+    }
+
+    @objc private func focusNote(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID, let panel = panels[id] else { return }
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // MARK: Window delegate (frame tracking)
+
+    func windowDidMove(_ notification: Notification) {
+        persistFrame(of: notification.object as? NSWindow)
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        persistFrame(of: notification.object as? NSWindow)
+    }
+
+    private func persistFrame(of window: NSWindow?) {
+        guard let id = noteID(of: window), var record = store.records[id] else { return }
+        record.frame = window!.frame
+        store.upsert(record)
+    }
+
+    // MARK: Helpers
+
+    private func noteID(of window: NSWindow?) -> UUID? {
+        guard let window else { return nil }
+        return panels.first { $0.value === window }?.key
+    }
+
+    private func currentZOrder() -> [UUID] {
+        // Front-to-back; zOrder 0 = frontmost.
+        NSApp.orderedWindows.compactMap { noteID(of: $0) }
+    }
+
+    private func cascadeFrame() -> NSRect {
+        let size = NSSize(width: 320, height: 240)
+        if let key = NSApp.keyWindow, noteID(of: key) != nil {
+            let offset = key.frame.offsetBy(dx: 28, dy: -28)
+            return rescueFrameIfOffScreen(
+                NSRect(origin: offset.origin, size: size))
+        }
+        guard let screen = NSScreen.main else {
+            return NSRect(x: 200, y: 200, width: size.width, height: size.height)
+        }
+        let visible = screen.visibleFrame
+        let step = CGFloat(panels.count % 8) * 28
+        return NSRect(
+            x: visible.minX + visible.width * 0.35 + step,
+            y: visible.maxY - 120 - size.height - step,
+            width: size.width, height: size.height)
+    }
+
+    private func rescueFrameIfOffScreen(_ frame: CGRect) -> CGRect {
+        for screen in NSScreen.screens {
+            let visible = screen.visibleFrame.intersection(frame)
+            if !visible.isNull, visible.width >= 40, visible.height >= 40 {
+                return frame
+            }
+        }
+        guard let main = NSScreen.main else { return frame }
+        let visible = main.visibleFrame
+        let step = CGFloat(panels.count % 8) * 28
+        return CGRect(
+            x: visible.minX + 80 + step,
+            y: visible.maxY - 80 - frame.height - step,
+            width: min(frame.width, visible.width - 160),
+            height: min(frame.height, visible.height - 160))
+    }
+}

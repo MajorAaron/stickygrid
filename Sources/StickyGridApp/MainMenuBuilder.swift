@@ -1,0 +1,102 @@
+import AppKit
+
+/// Programmatic main menu. The Edit menu's standard items are required —
+/// without them ⌘Z/⌘X/⌘C/⌘V/⌘A never reach the text views.
+enum MainMenuBuilder {
+    static func build(windowManager: WindowManager) -> NSMenu {
+        let main = NSMenu()
+
+        // App
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About StickyGrid",
+                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                        keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit StickyGrid",
+                        action: #selector(NSApplication.terminate(_:)),
+                        keyEquivalent: "q")
+        main.addItem(submenu(appMenu, title: "StickyGrid"))
+
+        // File
+        let fileMenu = NSMenu(title: "File")
+        fileMenu.addItem(targeted("New Note", #selector(WindowManager.newNote(_:)),
+                                  "n", windowManager))
+        fileMenu.addItem(.separator())
+        fileMenu.addItem(targeted("Delete Note", #selector(WindowManager.deleteFrontNote(_:)),
+                                  "w", windowManager))
+        main.addItem(submenu(fileMenu, title: "File"))
+
+        // Edit
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(redo)
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)),
+                         keyEquivalent: "a")
+        main.addItem(submenu(editMenu, title: "Edit"))
+
+        // Format — nil-target so actions reach the focused note's text view.
+        let formatMenu = NSMenu(title: "Format")
+        formatMenu.addItem(withTitle: "Bold",
+                           action: #selector(StickyTextView.noteToggleBold(_:)),
+                           keyEquivalent: "b")
+        formatMenu.addItem(withTitle: "Italic",
+                           action: #selector(StickyTextView.noteToggleItalic(_:)),
+                           keyEquivalent: "i")
+        formatMenu.addItem(withTitle: "Underline",
+                           action: #selector(NSText.underline(_:)),
+                           keyEquivalent: "u")
+        let strike = NSMenuItem(title: "Strikethrough",
+                                action: #selector(StickyTextView.toggleStrikethrough(_:)),
+                                keyEquivalent: "x")
+        strike.keyEquivalentModifierMask = [.command, .shift]
+        formatMenu.addItem(strike)
+        formatMenu.addItem(.separator())
+        let bullets = NSMenuItem(title: "Bullet List",
+                                 action: #selector(StickyTextView.toggleBulletList(_:)),
+                                 keyEquivalent: "l")
+        bullets.keyEquivalentModifierMask = [.command, .shift]
+        formatMenu.addItem(bullets)
+        main.addItem(submenu(formatMenu, title: "Format"))
+
+        // Window
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(targeted("Tile Notes", #selector(WindowManager.tileNotes(_:)),
+                                    "t", windowManager))
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(withTitle: "Minimize",
+                           action: #selector(NSWindow.performMiniaturize(_:)),
+                           keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "Bring All to Front",
+                           action: #selector(NSApplication.arrangeInFront(_:)),
+                           keyEquivalent: "")
+        main.addItem(submenu(windowMenu, title: "Window"))
+
+        // Notes — rebuilt on open by the WindowManager.
+        let notesMenu = NSMenu(title: "Notes")
+        notesMenu.delegate = windowManager
+        main.addItem(submenu(notesMenu, title: "Notes"))
+
+        return main
+    }
+
+    private static func submenu(_ menu: NSMenu, title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.submenu = menu
+        return item
+    }
+
+    private static func targeted(
+        _ title: String, _ action: Selector, _ key: String, _ target: AnyObject
+    ) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = target
+        return item
+    }
+}

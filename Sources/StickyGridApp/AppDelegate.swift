@@ -3,7 +3,8 @@ import StickyGridCore
 import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var windows: [NotePanel] = []
+    private var store: NoteStore!
+    private var windowManager: WindowManager!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSWindow.allowsAutomaticWindowTabbing = false
@@ -11,8 +12,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // without it the process gets no Dock icon, menu bar, or key windows.
         NSApp.setActivationPolicy(.regular)
 
-        openHardcodedNote()
+        store = NoteStore()
+        windowManager = WindowManager(store: store)
+        NSApp.mainMenu = MainMenuBuilder.build(windowManager: windowManager)
 
+        windowManager.restoreAll()
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -20,21 +24,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
-    // M2: a single hardcoded note to verify the window shell.
-    private func openHardcodedNote() {
-        let panel = NotePanel(frame: NSRect(x: 400, y: 400, width: 340, height: 260))
-        let container = NoteContainerView(color: .yellow)
-        let hosting = DraggableHostingView(NoteContentView())
-        hosting.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(hosting)
-        NSLayoutConstraint.activate([
-            hosting.topAnchor.constraint(equalTo: container.topAnchor),
-            hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-        ])
-        panel.contentView = container
-        panel.makeKeyAndOrderFront(nil)
-        windows.append(panel)
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        store.flushNow()
+        guard store.saveFailed else { return .terminateNow }
+
+        let alert = NSAlert()
+        alert.messageText = "Couldn't save your notes"
+        alert.informativeText = "Some changes could not be written to disk."
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Quit Anyway")
+        return alert.runModal() == .alertSecondButtonReturn ? .terminateNow : .terminateCancel
     }
 }
