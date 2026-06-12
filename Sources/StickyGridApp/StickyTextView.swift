@@ -224,6 +224,18 @@ final class StickyTextView: NSTextView {
         typingAttributes[.paragraphStyle] = style
     }
 
+    // MARK: Markdown typing shortcuts (conversion logic in +Markdown.swift)
+
+    override func insertText(_ insertString: Any, replacementRange: NSRange) {
+        super.insertText(insertString, replacementRange: replacementRange)
+        let typed = (insertString as? String)
+            ?? (insertString as? NSAttributedString)?.string ?? ""
+        // Single keystrokes only: pasted text and programmatic inserts (list
+        // continuation markers) must not trigger conversion.
+        guard typed.count == 1 else { return }
+        convertMarkdownIfNeeded(afterTyping: typed)
+    }
+
     // MARK: Bullet continuation on return
 
     override func insertNewline(_ sender: Any?) {
