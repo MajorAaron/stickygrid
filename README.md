@@ -29,6 +29,10 @@ fills your screen.
   and ⇧⌘N for the clipboard (see below)
 - AI Assist: summarize a note, turn it into a checklist, or polish the writing
   (see below)
+- Find in Notes (⌘F) — a Spotlight-style palette that live-searches every
+  note as you type (case- and accent-insensitive), title matches ranked
+  first. ↑/↓ moves the highlight; Return jumps to the note, selects the
+  hit, and flashes the find indicator
 
 ## Capture notes from other apps
 

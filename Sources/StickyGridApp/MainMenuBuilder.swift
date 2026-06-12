@@ -44,6 +44,9 @@ enum MainMenuBuilder {
         editMenu.addItem(.separator())
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)),
                          keyEquivalent: "a")
+        editMenu.addItem(.separator())
+        editMenu.addItem(targeted("Find in Notes…",
+                                  #selector(WindowManager.findInNotes(_:)), "f", windowManager))
         main.addItem(submenu(editMenu, title: "Edit"))
 
         // Format — nil-target so actions reach the focused note's text view.

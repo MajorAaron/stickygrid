@@ -319,6 +319,39 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         }
     }
 
+    // MARK: Find in Notes
+
+    private let searchPalette = SearchPaletteController()
+
+    @objc func findInNotes(_ sender: Any?) {
+        guard let screen = NSApp.keyWindow?.screen ?? NSScreen.main else { return }
+        searchPalette.show(
+            on: screen,
+            search: { [weak self] query in
+                guard let self else { return [] }
+                // Frontmost first so results mirror what the user sees.
+                var ordered = self.currentZOrder()
+                ordered += self.viewModels.keys.filter { !ordered.contains($0) }
+                let sources = ordered.compactMap { id -> NoteSearch.Source? in
+                    guard let viewModel = self.viewModels[id] else { return nil }
+                    return NoteSearch.Source(
+                        id: id, text: viewModel.textController.plainText())
+                }
+                return NoteSearch.search(query: query, in: sources)
+            },
+            onChoose: { [weak self] match in
+                self?.reveal(match)
+            })
+    }
+
+    private func reveal(_ match: NoteSearch.Match) {
+        guard let panel = panels[match.noteID] else { return }
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        viewModels[match.noteID]?.textController.reveal(
+            NSRange(location: match.matchLocation, length: match.matchLength))
+    }
+
     // MARK: Notes menu
 
     func menuNeedsUpdate(_ menu: NSMenu) {

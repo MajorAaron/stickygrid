@@ -58,6 +58,17 @@ final class RichTextController {
         tv.insertionPointColor = color
     }
 
+    /// Selects and flashes a range found by Find in Notes, scrolling it
+    /// into view. The range is in UTF-16 offsets (NSTextStorage space).
+    func reveal(_ range: NSRange) {
+        guard let tv = textView, let storage = tv.textStorage,
+              NSMaxRange(range) <= storage.length else { return }
+        tv.window?.makeFirstResponder(tv)
+        tv.setSelectedRange(range)
+        tv.scrollRangeToVisible(range)
+        tv.showFindIndicator(for: range)
+    }
+
     // MARK: RTF round-trip
 
     func rtfData() -> Data? {
