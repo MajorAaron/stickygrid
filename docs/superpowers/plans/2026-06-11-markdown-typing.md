@@ -26,7 +26,7 @@
 - Create: `Sources/StickyGridCore/MarkdownTyping.swift`
 - Test: `Tests/StickyGridCoreTests/MarkdownTypingTests.swift`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `Tests/StickyGridCoreTests/MarkdownTypingTests.swift`:
 
@@ -143,12 +143,12 @@ struct InlineMatchTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail to compile (type doesn't exist)**
+- [x] **Step 2: Run the tests to verify they fail to compile (type doesn't exist)**
 
 Run: `swift test --filter InlineMatchTests`
 Expected: build error — `MarkdownTyping` not found.
 
-- [ ] **Step 3: Implement the scanner**
+- [x] **Step 3: Implement the scanner**
 
 Create `Sources/StickyGridCore/MarkdownTyping.swift`:
 
@@ -246,12 +246,12 @@ public enum MarkdownTyping {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `swift test --filter InlineMatchTests`
 Expected: all tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources/StickyGridCore/MarkdownTyping.swift Tests/StickyGridCoreTests/MarkdownTypingTests.swift
@@ -266,7 +266,7 @@ git commit -m "Markdown typing: pure inline pattern scanner in Core"
 - Modify: `Sources/StickyGridCore/MarkdownTyping.swift` (append to the enum)
 - Test: `Tests/StickyGridCoreTests/MarkdownTypingTests.swift` (append suites)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `Tests/StickyGridCoreTests/MarkdownTypingTests.swift`:
 
@@ -346,12 +346,12 @@ struct LineMarkerTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail to compile**
+- [x] **Step 2: Run the tests to verify they fail to compile**
 
 Run: `swift test --filter "ListTriggerTests|LineMarkerTests"`
 Expected: build error — `listTrigger`, `checkboxUpgrade`, `LineMarker` not found.
 
-- [ ] **Step 3: Implement triggers and markers**
+- [x] **Step 3: Implement triggers and markers**
 
 Append inside `public enum MarkdownTyping { ... }` in `Sources/StickyGridCore/MarkdownTyping.swift`:
 
@@ -433,12 +433,12 @@ Append inside `public enum MarkdownTyping { ... }` in `Sources/StickyGridCore/Ma
     }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `swift test --filter "ListTriggerTests|LineMarkerTests"`
 Expected: all tests PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Sources/StickyGridCore/MarkdownTyping.swift Tests/StickyGridCoreTests/MarkdownTypingTests.swift
@@ -458,7 +458,7 @@ Background for the implementer: `StickyTextView` (TextKit 1 `NSTextView` subclas
 
 Contingency: `NSTextView.insertText` normally works headless, but if the Task 3 tests show no text being inserted at all, host the view in an offscreen window inside `makeNote` (`NSWindow(contentRect: .init(x: 0, y: 0, width: 200, height: 200), styleMask: .borderless, backing: .buffered, defer: true).contentView = tv`) and re-run before changing any production code.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `Tests/StickyGridAppTests/MarkdownConversionTests.swift`:
 
@@ -584,14 +584,14 @@ struct InlineConversionTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `swift test --filter InlineConversionTests`
 Expected: build error — `convertMarkdownIfNeeded` doesn't exist yet, or (once the file exists) FAIL on string equality because nothing converts.
 
 Note: a plain build error at this step is the expected red state; proceed.
 
-- [ ] **Step 3: Add the insertText hook to StickyTextView.swift**
+- [x] **Step 3: Add the insertText hook to StickyTextView.swift**
 
 In `Sources/StickyGridApp/StickyTextView.swift`, directly above the `// MARK: Bullet continuation on return` section, add:
 
@@ -609,7 +609,7 @@ In `Sources/StickyGridApp/StickyTextView.swift`, directly above the `// MARK: Bu
     }
 ```
 
-- [ ] **Step 4: Create the conversion extension**
+- [x] **Step 4: Create the conversion extension**
 
 Create `Sources/StickyGridApp/StickyTextView+Markdown.swift`:
 
@@ -697,19 +697,19 @@ extension StickyTextView {
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `swift test --filter InlineConversionTests`
 Expected: all tests PASS.
 
 If `noConversionInCode` fails because the code-span font check sees the wrong run, verify the guard reads the font at `full.location` (the opener position inside the mono run).
 
-- [ ] **Step 6: Run the full suite (header tests must still pass)**
+- [x] **Step 6: Run the full suite (header tests must still pass)**
 
 Run: `swift test`
 Expected: all tests PASS — especially `HeaderStylingTests`, which exercise the same `didChangeText`/`restyleHeader` path the conversion now also drives.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Sources/StickyGridApp/StickyTextView.swift Sources/StickyGridApp/StickyTextView+Markdown.swift Tests/StickyGridAppTests/MarkdownConversionTests.swift
@@ -725,7 +725,7 @@ git commit -m "Markdown typing: live inline conversion (bold, italic, strike, co
 - Modify: `Sources/StickyGridApp/StickyTextView.swift` (import Core, share the bullet literal, open up `applyListIndent`)
 - Test: `Tests/StickyGridAppTests/MarkdownConversionTests.swift` (append a suite)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `Tests/StickyGridAppTests/MarkdownConversionTests.swift`:
 
@@ -787,12 +787,12 @@ struct ListConversionTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `swift test --filter ListConversionTests`
 Expected: FAIL — strings keep their literal `- ` / `[ ] ` prefixes (no conversion happens yet).
 
-- [ ] **Step 3: Prepare StickyTextView.swift**
+- [x] **Step 3: Prepare StickyTextView.swift**
 
 Three small edits in `Sources/StickyGridApp/StickyTextView.swift`:
 
@@ -826,7 +826,7 @@ to:
     func applyListIndent(_ on: Bool, to range: NSRange, storage: NSTextStorage) {
 ```
 
-- [ ] **Step 4: Add list conversion to the extension**
+- [x] **Step 4: Add list conversion to the extension**
 
 In `Sources/StickyGridApp/StickyTextView+Markdown.swift`, replace the `default: return` arm of the `switch typed` in `convertMarkdownIfNeeded` with:
 
@@ -870,17 +870,17 @@ And add the apply method below `applyInline`:
     }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `swift test --filter ListConversionTests`
 Expected: all tests PASS.
 
-- [ ] **Step 6: Run the full suite**
+- [x] **Step 6: Run the full suite**
 
 Run: `swift test`
 Expected: all tests PASS (bullet toggle and header tests unaffected — `bulletPrefix` kept its `"•\t"` value, now sourced from Core).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add Sources/StickyGridApp/StickyTextView.swift Sources/StickyGridApp/StickyTextView+Markdown.swift Tests/StickyGridAppTests/MarkdownConversionTests.swift
@@ -897,7 +897,7 @@ git commit -m "Markdown typing: list triggers — bullets, numbered, checkboxes"
 
 Today `insertNewline` only continues `•\t` bullets. `MarkdownTyping.LineMarker` generalizes it: bullets repeat, numbers increment, checkboxes continue unchecked, and return on an empty item exits the list.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `Tests/StickyGridAppTests/MarkdownConversionTests.swift`:
 
@@ -940,12 +940,12 @@ struct ContinuationTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `swift test --filter ContinuationTests`
 Expected: `bullet` PASSES (existing behavior); `numbered`, `checkbox`, `exitOnEmpty` FAIL (no continuation for those markers — `numbered` ends with plain `eggs`).
 
-- [ ] **Step 3: Rewrite insertNewline**
+- [x] **Step 3: Rewrite insertNewline**
 
 In `Sources/StickyGridApp/StickyTextView.swift`, replace the entire `// MARK: Bullet continuation on return` section (the `insertNewline` override) with:
 
@@ -991,17 +991,17 @@ In `Sources/StickyGridApp/StickyTextView.swift`, replace the entire `// MARK: Bu
 
 This replaces the old bullet-only logic; the `paragraphHasMarker`/`paragraphIsBulleted` helpers remain in use by `toggleBulletList` and must stay.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `swift test --filter ContinuationTests`
 Expected: all tests PASS.
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 Run: `swift test`
 Expected: all tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/StickyGridApp/StickyTextView.swift Tests/StickyGridAppTests/MarkdownConversionTests.swift
@@ -1019,7 +1019,7 @@ git commit -m "Markdown typing: return continues numbered lists and checkboxes"
 
 The toggle is split from the hit test so it's unit-testable: `toggleCheckbox(at:)` takes a character index; `checkboxIndex(at:)` maps a mouse event to that index (verified manually — synthesizing NSEvents headless is not worth it).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `Tests/StickyGridAppTests/MarkdownConversionTests.swift`:
 
@@ -1049,12 +1049,12 @@ struct CheckboxToggleTests {
 }
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail to compile**
+- [x] **Step 2: Run the tests to verify they fail to compile**
 
 Run: `swift test --filter CheckboxToggleTests`
 Expected: build error — `toggleCheckbox(at:)` doesn't exist.
 
-- [ ] **Step 3: Implement toggle and hit test**
+- [x] **Step 3: Implement toggle and hit test**
 
 Append inside the extension in `Sources/StickyGridApp/StickyTextView+Markdown.swift`:
 
@@ -1116,17 +1116,17 @@ In `Sources/StickyGridApp/StickyTextView.swift`, directly below the `insertText`
     }
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `swift test --filter CheckboxToggleTests`
 Expected: all tests PASS.
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 Run: `swift test`
 Expected: all tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Sources/StickyGridApp/StickyTextView.swift Sources/StickyGridApp/StickyTextView+Markdown.swift Tests/StickyGridAppTests/MarkdownConversionTests.swift
@@ -1140,7 +1140,7 @@ git commit -m "Markdown typing: clickable checkbox markers"
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document the feature in the README**
+- [x] **Step 1: Document the feature in the README**
 
 In `README.md`, in the `## Features` list, directly below the "Rich text: …" bullet, add:
 
@@ -1150,17 +1150,17 @@ In `README.md`, in the `## Features` list, directly below the "Rich text: …" b
   clickable-checkbox lists. Markers vanish; ⌘Z brings them back.
 ```
 
-- [ ] **Step 2: Run the full test suite**
+- [x] **Step 2: Run the full test suite**
 
 Run: `swift test`
 Expected: all tests PASS.
 
-- [ ] **Step 3: Build the app bundle**
+- [x] **Step 3: Build the app bundle**
 
 Run: `./Scripts/build-app.sh`
 Expected: exits 0, `build/StickyGrid.app` assembled.
 
-- [ ] **Step 4: Manual verification in the running app**
+- [x] **Step 4: Manual verification in the running app**
 
 Run: `open build/StickyGrid.app`, create a note, and verify each item:
 
@@ -1172,7 +1172,7 @@ Run: `open build/StickyGrid.app`, create a note, and verify each item:
 - Quit and relaunch → all converted formatting (including checkboxes and numbering) survives the RTF round-trip.
 - ⇧⌘L bullet toggle and the hover-toolbar formatting buttons still behave as before.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md
