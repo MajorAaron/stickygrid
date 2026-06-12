@@ -32,6 +32,11 @@ enum MainMenuBuilder {
                                   #selector(WindowManager.quickCapture(_:)),
                                   "", windowManager))
         fileMenu.addItem(.separator())
+        let importMarkdown = targeted(
+            "Import Markdown…",
+            #selector(WindowManager.importMarkdownFiles(_:)), "i", windowManager)
+        importMarkdown.keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(importMarkdown)
         fileMenu.addItem(targeted("Share Note", #selector(WindowManager.shareFrontNote(_:)),
                                   "", windowManager))
         let copyMarkdown = targeted(
