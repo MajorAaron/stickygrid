@@ -93,7 +93,9 @@ Six ways to get text into a sticky without switching to StickyGrid first:
 
   `text` (alias `body`) is the percent-encoded note body, `title` becomes the
   first line (auto-styled as the header), and `color` is one of the eight
-  palette names. A bare `stickygrid://new` opens an empty note.
+  palette names. Add `markdown=1` and the body is styled on arrival — bold,
+  lists, checkboxes, quotes — exactly like pasting markdown into a note.
+  A bare `stickygrid://new` opens an empty note.
 - **Shell / scripts — the `sticky` command** — a tiny CLI that builds the
   capture URL for you (percent-encoding included) and opens it, so notes
   are one pipe away from any terminal, Raycast/Alfred script, cron job, or
@@ -102,12 +104,14 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   ```bash
   sticky Buy milk
   git log --oneline -5 | sticky --title "Release notes" --color blue
+  cat TODO.md | sticky -m    # body is markdown: arrives styled, not literal
   sticky --print "hi"        # print the stickygrid:// URL instead of opening
   ```
 
   Words join into the body; with no words the body is read from piped
-  stdin; `--title`/`-t` sets the first line and `--color`/`-c` one of the
-  eight palette names.
+  stdin; `--title`/`-t` sets the first line, `--color`/`-c` one of the
+  eight palette names, and `-m`/`--markdown` marks the body as markdown
+  so it renders with styles instead of literal `**asterisks**`.
 
   The CLI also reads your notes back out (read-only — safe while the app
   is running):
@@ -122,8 +126,10 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   hit (ambiguous queries list the candidates). `-m`/`--markdown` prints
   the note with its styling intact — the same serialization as ⌥⌘C — so
   `sticky cat -m groceries | pbcopy` moves a styled note into any app
-  that speaks markdown. To capture a note whose body starts with the
-  word "list" or "cat", escape with `sticky -- list`.
+  that speaks markdown — and `-m` works the same way on capture, so
+  `sticky cat -m plan | sticky -m -t "Plan (copy)"` duplicates a styled
+  note entirely from the shell. To capture a note whose body starts with
+  the word "list" or "cat", escape with `sticky -- list`.
   Build and install it with:
 
   ```bash
