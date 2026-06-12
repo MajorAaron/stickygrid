@@ -47,6 +47,23 @@ struct MarkdownExportTests {
         #expect(md == "# T\n*it*\n~~gone~~\n`let x`")
     }
 
+    @Test("quote lines emit > and strip the bar literal")
+    func quote() {
+        let md = MarkdownExport.markdown(paragraphs: [
+            [plain("T")],
+            [plain(MarkdownTyping.LineMarker.quote.literal + "wise words")],
+        ])
+        #expect(md == "# T\n> wise words")
+    }
+
+    @Test("a quote on the first line exports as a quote, not an H1")
+    func quoteFirstLine() {
+        let md = MarkdownExport.markdown(paragraphs: [
+            [plain(MarkdownTyping.LineMarker.quote.literal + "opening line")],
+        ])
+        #expect(md == "> opening line")
+    }
+
     @Test("bold+italic wraps in ***")
     func boldItalic() {
         let md = MarkdownExport.markdown(paragraphs: [

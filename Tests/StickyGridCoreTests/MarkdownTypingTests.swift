@@ -132,6 +132,14 @@ struct ListTriggerTests {
         #expect(MarkdownTyping.listTrigger(linePrefix: "[X] ") == .checkbox(checked: true))
     }
 
+    @Test("> with a space triggers a quote")
+    func quote() {
+        #expect(MarkdownTyping.listTrigger(linePrefix: "> ") == .quote)
+        #expect(MarkdownTyping.listTrigger(linePrefix: ">") == nil)       // no space yet
+        #expect(MarkdownTyping.listTrigger(linePrefix: ">  ") == nil)     // extra space
+        #expect(MarkdownTyping.listTrigger(linePrefix: "x > ") == nil)    // mid-line
+    }
+
     @Test("anything else does not trigger")
     func noTrigger() {
         #expect(MarkdownTyping.listTrigger(linePrefix: "-") == nil)       // no space yet
@@ -160,6 +168,7 @@ struct LineMarkerTests {
         #expect(MarkdownTyping.LineMarker.numbered(7).literal == "7.\t")
         #expect(MarkdownTyping.LineMarker.checkbox(checked: false).literal == "\u{2610}\t")
         #expect(MarkdownTyping.LineMarker.checkbox(checked: true).literal == "\u{2611}\t")
+        #expect(MarkdownTyping.LineMarker.quote.literal == "\u{258E}\t")
     }
 
     @Test("parse recognizes each marker at paragraph start")
@@ -170,6 +179,7 @@ struct LineMarkerTests {
                 == .checkbox(checked: false))
         #expect(MarkdownTyping.LineMarker.parse(paragraph: "\u{2611}\tdone")
                 == .checkbox(checked: true))
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "\u{258E}\twise words") == .quote)
         #expect(MarkdownTyping.LineMarker.parse(paragraph: "plain line") == nil)
         #expect(MarkdownTyping.LineMarker.parse(paragraph: "1月\tx") == nil)
     }
@@ -180,5 +190,6 @@ struct LineMarkerTests {
         #expect(MarkdownTyping.LineMarker.numbered(7).continuationLiteral == "8.\t")
         #expect(MarkdownTyping.LineMarker.checkbox(checked: true).continuationLiteral
                 == "\u{2610}\t")
+        #expect(MarkdownTyping.LineMarker.quote.continuationLiteral == "\u{258E}\t")
     }
 }

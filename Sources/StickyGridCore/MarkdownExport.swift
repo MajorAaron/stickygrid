@@ -52,6 +52,7 @@ public enum MarkdownExport {
         case .bullet: return "- "
         case .numbered(let n): return "\(n). "
         case .checkbox(let checked): return checked ? "- [x] " : "- [ ] "
+        case .quote: return "> "
         }
     }
 
