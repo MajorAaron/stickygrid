@@ -64,6 +64,10 @@ round-trip: the title becomes an `# H1`, bold/italic/strike/code become
   paste into Slack, GitHub, Obsidian, or a commit message.
 - **Export Note as Markdown… (⇧⌘E)** — writes a `.md` file named after the
   note's title.
+- **Export All Notes… (⌥⇧⌘E)** — pick a folder and every note becomes one
+  `.md` file there, same filenames as `sticky export` below. Re-exporting
+  to the same folder refreshes the files in place — backup, grep, or an
+  Obsidian vault.
 
 ## Capture notes from other apps
 

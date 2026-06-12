@@ -244,6 +244,74 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         }
     }
 
+    struct BulkExportResult: Equatable {
+        var exported: Int
+        var skipped: Int
+    }
+
+    /// File → Export All Notes…: the GUI twin of `sticky export` — every
+    /// note becomes one .md file in a chosen folder, names via NoteExport
+    /// so both surfaces write identical folders.
+    @objc func exportAllNotesAsMarkdown(_ sender: Any?) {
+        let records = Array(store.records.values)
+        guard !records.isEmpty else { NSSound.beep(); return }
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.prompt = "Export"
+        panel.message = "Every note becomes one markdown file in this folder."
+        panel.begin { [weak self] response in
+            guard response == .OK, let self, let directory = panel.url else { return }
+            do {
+                let result = try Self.exportAllNotes(
+                    records: records,
+                    markdown: { self.noteMarkdown($0) },
+                    to: directory)
+                let alert = NSAlert()
+                alert.messageText = "Exported \(result.exported) "
+                    + (result.exported == 1 ? "note" : "notes")
+                alert.informativeText = result.skipped > 0
+                    ? "\(result.skipped) empty "
+                      + (result.skipped == 1 ? "note was" : "notes were")
+                      + " skipped."
+                    : "Saved to \(directory.lastPathComponent)."
+                alert.addButton(withTitle: "Show in Finder")
+                alert.addButton(withTitle: "OK")
+                if alert.runModal() == .alertFirstButtonReturn {
+                    NSWorkspace.shared.activateFileViewerSelecting([directory])
+                }
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
+    }
+
+    /// Writes one `<filename>.md` per note into `directory` (created if
+    /// missing), overwriting stale files. Notes whose markdown is nil
+    /// (empty notes) are skipped and counted.
+    nonisolated static func exportAllNotes(
+        records: [NoteRecord],
+        markdown: (UUID) -> String?,
+        to directory: URL
+    ) throws -> BulkExportResult {
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true)
+        var result = BulkExportResult(exported: 0, skipped: 0)
+        for entry in NoteExport.entries(for: records) {
+            guard let body = markdown(entry.id) else {
+                result.skipped += 1
+                continue
+            }
+            try (body + "\n").write(
+                to: directory.appendingPathComponent(entry.filename),
+                atomically: true, encoding: .utf8)
+            result.exported += 1
+        }
+        return result
+    }
+
     private func shareNote(_ id: UUID) {
         guard let panel = panels[id], let contentView = panel.contentView,
               let markdown = noteMarkdown(id) else { NSSound.beep(); return }

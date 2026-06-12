@@ -49,6 +49,11 @@ enum MainMenuBuilder {
             #selector(WindowManager.exportFrontNoteAsMarkdown(_:)), "e", windowManager)
         exportMarkdown.keyEquivalentModifierMask = [.command, .shift]
         fileMenu.addItem(exportMarkdown)
+        let exportAll = targeted(
+            "Export All Notes…",
+            #selector(WindowManager.exportAllNotesAsMarkdown(_:)), "e", windowManager)
+        exportAll.keyEquivalentModifierMask = [.command, .shift, .option]
+        fileMenu.addItem(exportAll)
         fileMenu.addItem(.separator())
         fileMenu.addItem(targeted("Delete Note", #selector(WindowManager.deleteFrontNote(_:)),
                                   "w", windowManager))
