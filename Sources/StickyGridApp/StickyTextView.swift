@@ -9,6 +9,10 @@ final class StickyTextView: NSTextView {
     static let bulletPrefix = MarkdownTyping.LineMarker.bullet.literal
     private static let bulletIndent: CGFloat = 22
 
+    /// Routes dropped .md files out of the view layer (drop handling in
+    /// +Drop.swift); wired by RichTextEditor to WindowManager's import path.
+    var onDropMarkdownFiles: (([URL]) -> Void)?
+
     // MARK: Bold / italic
 
     @objc func noteToggleBold(_ sender: Any?) { toggleTrait(.boldFontMask) }

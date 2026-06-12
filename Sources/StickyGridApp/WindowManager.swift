@@ -89,6 +89,11 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
         viewModel.onAIAction = { [weak self] action in self?.runAI(action, on: id) }
         viewModel.onShare = { [weak self] in self?.shareNote(id) }
+        viewModel.onImportFiles = { [weak self] urls in
+            guard let self else { return }
+            let imported = urls.filter { self.importNote(from: $0) }
+            if imported.isEmpty { NSSound.beep() }
+        }
 
         let panel = NotePanel(frame: record.frame)
         let container = NoteContainerView(color: record.colorID)
