@@ -89,6 +89,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
         viewModel.onAIAction = { [weak self] action in self?.runAI(action, on: id) }
         viewModel.onAskAI = { [weak self] in self?.promptAskAI(on: id) }
+        viewModel.onSuggestColor = { [weak self] in self?.suggestColor(on: id) }
         viewModel.onShare = { [weak self] in self?.shareNote(id) }
         viewModel.onImportFiles = { [weak self] urls in
             guard let self else { return }
@@ -340,6 +341,34 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     @objc func aiAskNote(_ sender: Any?) {
         guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
         promptAskAI(on: id)
+    }
+
+    @objc func aiSuggestColorNote(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        suggestColor(on: id)
+    }
+
+    /// Like runAI, but the result is a palette color instead of new text.
+    private func suggestColor(on id: UUID) {
+        guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
+        let text = viewModel.textController.plainText()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { NSSound.beep(); return }
+        guard NoteAI.apiKey() != nil else {
+            promptForAPIKey()
+            return
+        }
+
+        viewModel.aiBusy = true
+        Task { @MainActor [weak self] in
+            defer { viewModel.aiBusy = false }
+            do {
+                viewModel.colorID = try await NoteAI.suggestColor(for: text)
+                self?.appearanceChanged(id)
+            } catch {
+                self?.presentAIError(error, on: id)
+            }
+        }
     }
 
     private static let lastAskInstructionKey = "AILastAskInstruction"
