@@ -95,6 +95,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onAIAction = { [weak self] action in self?.runAI(action, on: id) }
         viewModel.onAskAI = { [weak self] in self?.promptAskAI(on: id) }
         viewModel.onSuggestColor = { [weak self] in self?.suggestColor(on: id) }
+        viewModel.onSuggestTitle = { [weak self] in self?.suggestTitle(on: id) }
         viewModel.onShare = { [weak self] in self?.shareNote(id) }
         viewModel.onImportFiles = { [weak self] urls in
             guard let self else { return }
@@ -351,6 +352,35 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     @objc func aiSuggestColorNote(_ sender: Any?) {
         guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
         suggestColor(on: id)
+    }
+
+    @objc func aiSuggestTitleNote(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        suggestTitle(on: id)
+    }
+
+    /// Like suggestColor, but the result is inserted as a new first line —
+    /// the old text shifts down intact, and one undo reverts it.
+    private func suggestTitle(on id: UUID) {
+        guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
+        let text = viewModel.textController.plainText()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { NSSound.beep(); return }
+        guard NoteAI.apiKey() != nil else {
+            promptForAPIKey()
+            return
+        }
+
+        viewModel.aiBusy = true
+        Task { @MainActor [weak self] in
+            defer { viewModel.aiBusy = false }
+            do {
+                let title = try await NoteAI.suggestTitle(for: text)
+                viewModel.textController.insertTitleLine(title)
+            } catch {
+                self?.presentAIError(error, on: id)
+            }
+        }
     }
 
     // MARK: Auto-color on capture
