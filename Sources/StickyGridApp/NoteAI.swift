@@ -181,6 +181,49 @@ enum NoteAI {
         return color
     }
 
+    /// Proposes a short title for the note; the caller inserts it as a new
+    /// first line. Replies are normalized by `sanitizedTitle`.
+    static func suggestTitle(for text: String) async throws -> String {
+        let reply = try await complete(system: titleSystemPrompt, user: text)
+        guard let title = sanitizedTitle(reply) else { throw NoteAIError.badResponse }
+        return title
+    }
+
+    static var titleSystemPrompt: String {
+        """
+        You title sticky notes. Read the note text and reply with a short \
+        title of 2–6 words that captures what the note is about.
+
+        Reply with the title only, on a single line: no quotes, no markdown, \
+        no trailing punctuation, no explanation.
+        """
+    }
+
+    /// Normalizes a title reply: first non-empty line, minus a "Title:"
+    /// label, markdown `#` markers, surrounding quotes, and a trailing
+    /// period, with whitespace collapsed. Nil when nothing is left —
+    /// models drift from "title only" instructions the same way the color
+    /// parser's models drift from "one word".
+    static func sanitizedTitle(_ reply: String) -> String? {
+        let line = reply
+            .components(separatedBy: .newlines)
+            .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard var title = line else { return nil }
+
+        title = title.trimmingCharacters(in: .whitespaces)
+        let label = /^title:\s*/.ignoresCase()
+        title.replace(label, with: "", maxReplacements: 1)
+        while title.hasPrefix("#") { title.removeFirst() }
+        let quotes = CharacterSet(charactersIn: "\"'\u{201C}\u{201D}\u{2018}\u{2019}")
+        title = title.trimmingCharacters(in: quotes.union(.whitespaces))
+        while title.hasSuffix(".") { title.removeLast() }
+        title = title
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return title.isEmpty ? nil : title
+    }
+
     /// Built from `NoteColor.allCases` so a new palette color can't be forgotten.
     static var colorSystemPrompt: String {
         let names = NoteColor.allCases.map(\.rawValue).joined(separator: ", ")

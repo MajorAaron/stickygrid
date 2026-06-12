@@ -83,8 +83,10 @@ later if wanted.
 - `TitleInsertTests` (@MainActor, StickyTextView harness from
   HeaderStylingTests): inserting "Groceries" into "milk\neggs" yields
   "Groceries\nmilk\neggs" with line 1 bold @ header size and "milk"
-  demoted to body size; insert into empty note yields "Groceries\n";
-  the edit is undoable via the view's undoManager.
+  demoted to body size — bold survives demotion, matching the existing
+  "traits preserved" invariant in HeaderStylingTests; insert into empty
+  note yields "Groceries\n"; the edit is undoable via the view's
+  undoManager.
 
 Network paths (`suggestTitle`, WindowManager glue) stay untested as with
 the other AI features; manual GUI verification deferred to the user.

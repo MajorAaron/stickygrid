@@ -95,6 +95,27 @@ final class RichTextController {
         textView?.markdownText() ?? ""
     }
 
+    /// Inserts a suggested title as a new first line; the existing text
+    /// shifts down intact. Goes through shouldChangeText/didChangeText so
+    /// the insert is one undoable edit and restyleHeader promotes the new
+    /// line (and demotes the old first line) automatically.
+    func insertTitleLine(_ title: String) {
+        guard let tv = textView, let storage = tv.textStorage else { return }
+        let line = title + "\n"
+        let start = NSRange(location: 0, length: 0)
+        guard tv.shouldChangeText(in: start, replacementString: line) else { return }
+        let color: NSColor = (tv.typingAttributes[.foregroundColor] as? NSColor)
+            ?? tv.insertionPointColor ?? .textColor
+        storage.beginEditing()
+        storage.replaceCharacters(
+            in: start,
+            with: NSAttributedString(
+                string: line,
+                attributes: [.font: tv.bodyFont, .foregroundColor: color]))
+        storage.endEditing()
+        tv.didChangeText()
+    }
+
     /// Replaces the whole note body with plain text styled in the note's
     /// current font and ink. Goes through shouldChangeText/didChangeText so
     /// the swap is undoable and the header restyle + autosave fire.
