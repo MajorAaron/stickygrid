@@ -10,7 +10,7 @@ let usage = """
 usage: sticky [options] [--] [words...]
        <command> | sticky [options]
        sticky list
-       sticky cat <id-prefix or title words>
+       sticky cat [-m] <id-prefix or title words>
 
 Creates a StickyGrid note. Words join into the note body; with no words,
 the body is read from piped stdin. `list` and `cat` read your existing
@@ -20,12 +20,13 @@ options:
   -t, --title <text>   first line of the note
   -c, --color <name>   yellow pink blue green purple orange gray white
       --print          print the stickygrid:// URL instead of opening it
+  -m, --markdown       (cat) print the note as markdown, styles intact
   -h, --help           show this help
 
 examples:
   sticky Buy milk
   git log --oneline -5 | sticky -t "Release notes" -c blue
-  sticky cat release
+  sticky cat -m release | pbcopy
 """
 
 func fail(_ message: String, code: Int32) -> Never {
@@ -67,7 +68,7 @@ case .list:
     if records.isEmpty { print("no notes"); exit(0) }
     NoteListing.lines(for: records).forEach { print($0) }
     exit(0)
-case .cat(let query):
+case .cat(let query, let markdown):
     let records = loadRecords()
     switch NoteListing.match(query, in: records) {
     case .none:
@@ -84,7 +85,22 @@ case .cat(let query):
                data: data,
                options: [.documentType: NSAttributedString.DocumentType.rtf],
                documentAttributes: nil) {
-            print(text.string)
+            if markdown {
+                // Same classifier as the app's export path: font traits for
+                // bold/italic, Menlo prefix marks code spans.
+                print(MarkdownExport.markdown(of: text) { attrs in
+                    let font = attrs[.font] as? NSFont
+                    let traits = font.map(NSFontManager.shared.traits(of:)) ?? []
+                    let strike = attrs[.strikethroughStyle] as? Int ?? 0
+                    return MarkdownExport.Style(
+                        bold: traits.contains(.boldFontMask),
+                        italic: traits.contains(.italicFontMask),
+                        strikethrough: strike != 0,
+                        code: font?.fontName.hasPrefix("Menlo") ?? false)
+                })
+            } else {
+                print(text.string)
+            }
         }
         exit(0)
     }
