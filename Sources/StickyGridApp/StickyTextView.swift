@@ -237,7 +237,10 @@ final class StickyTextView: NSTextView {
         convertMarkdownIfNeeded(afterTyping: typed)
     }
 
-    // MARK: Bullet continuation on return
+    // MARK: List continuation on return
+    // Bullets repeat, numbered items increment, checkboxes continue
+    // unchecked. Continuation markers are inserted via insertText but are
+    // multi-character, so the markdown conversion hook ignores them.
 
     override func insertNewline(_ sender: Any?) {
         guard let storage = textStorage else { return super.insertNewline(sender) }
@@ -246,16 +249,18 @@ final class StickyTextView: NSTextView {
         guard caret.length == 0, text.length > 0 else { return super.insertNewline(sender) }
 
         let paragraph = text.paragraphRange(for: caret)
-        guard paragraphHasMarker(at: paragraph.location) else {
+        guard let marker = MarkdownTyping.LineMarker.parse(
+            paragraph: text.substring(with: paragraph)) else {
             return super.insertNewline(sender)
         }
 
-        // Empty bullet + return = leave the list (like every notes app).
+        // Empty item + return = leave the list (like every notes app).
         let body = text.substring(with: paragraph)
+            .dropFirst(marker.literal.count)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        if body == "•" {
+        if body.isEmpty {
             let markerRange = NSRange(location: paragraph.location,
-                                      length: Self.bulletPrefix.count)
+                                      length: (marker.literal as NSString).length)
             if shouldChangeText(in: markerRange, replacementString: "") {
                 storage.replaceCharacters(in: markerRange, with: "")
                 didChangeText()
@@ -267,6 +272,6 @@ final class StickyTextView: NSTextView {
         }
 
         super.insertNewline(sender)
-        insertText(Self.bulletPrefix, replacementRange: selectedRange())
+        insertText(marker.continuationLiteral, replacementRange: selectedRange())
     }
 }

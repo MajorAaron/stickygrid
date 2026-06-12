@@ -173,3 +173,40 @@ struct ListConversionTests {
         #expect(style.headIndent == 22)
     }
 }
+
+@Suite("Markdown typing — return-key continuation")
+@MainActor
+struct ContinuationTests {
+
+    @Test("bullets continue on return")
+    func bullet() {
+        let tv = makeNote()
+        type("Title\n- milk\neggs", into: tv)
+        #expect(tv.string == "Title\n\u{2022}\tmilk\n\u{2022}\teggs")
+    }
+
+    @Test("numbered lists increment on return")
+    func numbered() {
+        let tv = makeNote()
+        type("Title\n1. milk\neggs", into: tv)
+        #expect(tv.string == "Title\n1.\tmilk\n2.\teggs")
+    }
+
+    @Test("checkbox lines continue with a fresh unchecked box")
+    func checkbox() {
+        let tv = makeNote()
+        type("Title\n[ ] milk\neggs", into: tv)
+        #expect(tv.string == "Title\n\u{2610}\tmilk\n\u{2610}\teggs")
+    }
+
+    @Test("return on an empty item exits the list")
+    func exitOnEmpty() {
+        let tv = makeNote()
+        type("Title\n1. milk\n\n", into: tv)
+        // First return continues with "2.\t"; second return (empty item)
+        // removes the marker and swallows the newline.
+        #expect(tv.string == "Title\n1.\tmilk\n")
+        let style = tv.typingAttributes[.paragraphStyle] as? NSParagraphStyle
+        #expect((style?.headIndent ?? 0) == 0)  // indent cleared
+    }
+}
