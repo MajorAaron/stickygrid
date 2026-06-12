@@ -75,4 +75,34 @@ struct CaptureCommandTests {
             try CaptureCommand.parse(["-c", "chartreuse"])
         }
     }
+
+    @Test("first argument list dispatches the list subcommand")
+    func listSubcommand() throws {
+        #expect(try CaptureCommand.parse(["list"]) == .list)
+    }
+
+    @Test("first argument cat joins the rest into one query")
+    func catSubcommand() throws {
+        #expect(try CaptureCommand.parse(["cat", "groceries"]) == .cat(query: "groceries"))
+        #expect(try CaptureCommand.parse(["cat", "release", "notes"]) == .cat(query: "release notes"))
+    }
+
+    @Test("cat with no query is a usage error")
+    func catNeedsQuery() {
+        #expect(throws: CaptureCommand.ParseError.missingValue("cat")) {
+            try CaptureCommand.parse(["cat"])
+        }
+    }
+
+    @Test("-- list is still a captured note body, not a subcommand")
+    func dashDashEscapesSubcommand() throws {
+        #expect(try CaptureCommand.parse(["--", "list"])
+                == .new(body: "list", title: nil, color: nil, printOnly: false))
+    }
+
+    @Test("subcommands only dispatch from the first argument")
+    func subcommandMustBeFirst() throws {
+        #expect(try CaptureCommand.parse(["-t", "x", "list"])
+                == .new(body: "list", title: "x", color: nil, printOnly: false))
+    }
 }

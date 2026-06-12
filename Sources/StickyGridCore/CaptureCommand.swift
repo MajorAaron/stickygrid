@@ -6,9 +6,14 @@ import Foundation
 /// `sticky [--title v] [--color v] [--print] [--] [words...]`
 /// Positional words join into the body; no positionals leaves the body nil
 /// so the executable can fill it from stdin.
+///
+/// A first argument of exactly `list` or `cat` dispatches the read-only
+/// subcommands instead (`sticky -- list` escapes back to capture).
 public enum CaptureCommand: Equatable, Sendable {
     case help
     case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool)
+    case list
+    case cat(query: String)
 
     public enum ParseError: Error, Equatable {
         case unknownOption(String)
@@ -17,6 +22,17 @@ public enum CaptureCommand: Equatable, Sendable {
     }
 
     public static func parse(_ args: [String]) throws(ParseError) -> CaptureCommand {
+        switch args.first {
+        case "list":
+            return .list
+        case "cat":
+            let query = args.dropFirst().joined(separator: " ")
+            guard !query.isEmpty else { throw .missingValue("cat") }
+            return .cat(query: query)
+        default:
+            break
+        }
+
         var words: [String] = []
         var title: String?
         var color: NoteColor?
