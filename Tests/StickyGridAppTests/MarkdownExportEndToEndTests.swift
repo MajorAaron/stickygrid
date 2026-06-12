@@ -69,3 +69,17 @@ struct MarkdownExportEndToEndTests {
         #expect(tv.markdownText() == "# T\n1. one\n2. two")
     }
 }
+
+@Suite("Export file name")
+struct ExportFileNameTests {
+
+    @Test("first line, sanitized, .md appended")
+    func sanitizes() {
+        #expect(WindowManager.exportFileName(title: "a/b: c\nrest") == "a-b- c.md")
+    }
+
+    @Test("empty title falls back to Note.md")
+    func fallback() {
+        #expect(WindowManager.exportFileName(title: "  \n ") == "Note.md")
+    }
+}

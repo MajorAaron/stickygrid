@@ -25,6 +25,7 @@ final class NoteViewModel: Identifiable {
     @ObservationIgnored var onAppearanceChanged: () -> Void = {}
     @ObservationIgnored var onTextChanged: () -> Void = {}
     @ObservationIgnored var onAIAction: (NoteAIAction) -> Void = { _ in }
+    @ObservationIgnored var onShare: () -> Void = {}
 
     init(record: NoteRecord) {
         id = record.id

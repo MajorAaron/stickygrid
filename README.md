@@ -36,6 +36,23 @@ fills your screen.
   note as you type (case- and accent-insensitive), title matches ranked
   first. ↑/↓ moves the highlight; Return jumps to the note, selects the
   hit, and flashes the find indicator
+- Share & export: send a note anywhere as markdown (see below)
+
+## Share a note with other apps
+
+Every way text gets *into* StickyGrid has a twin for getting it *out*. All
+three serialize the note to markdown — formatting, lists, and checkboxes
+round-trip: the title becomes an `# H1`, bold/italic/strike/code become
+`**`/`*`/`~~`/`` ` ``, and bullets, numbered items, and checkboxes become
+`- `, `1. `, `- [ ] `, and `- [x] `.
+
+- **Share button** (the export arrow on the hover toolbar, or
+  File → Share Note) — opens the macOS share sheet, so a sticky can jump
+  straight to Mail, Messages, Apple Notes, or any app that accepts text.
+- **Copy as Markdown (⌥⌘C)** — puts the markdown on the clipboard, ready to
+  paste into Slack, GitHub, Obsidian, or a commit message.
+- **Export Note as Markdown… (⇧⌘E)** — writes a `.md` file named after the
+  note's title.
 
 ## Capture notes from other apps
 

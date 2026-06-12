@@ -32,6 +32,19 @@ enum MainMenuBuilder {
                                   #selector(WindowManager.quickCapture(_:)),
                                   "", windowManager))
         fileMenu.addItem(.separator())
+        fileMenu.addItem(targeted("Share Note", #selector(WindowManager.shareFrontNote(_:)),
+                                  "", windowManager))
+        let copyMarkdown = targeted(
+            "Copy as Markdown",
+            #selector(WindowManager.copyFrontNoteAsMarkdown(_:)), "c", windowManager)
+        copyMarkdown.keyEquivalentModifierMask = [.command, .option]
+        fileMenu.addItem(copyMarkdown)
+        let exportMarkdown = targeted(
+            "Export Note as Markdown…",
+            #selector(WindowManager.exportFrontNoteAsMarkdown(_:)), "e", windowManager)
+        exportMarkdown.keyEquivalentModifierMask = [.command, .shift]
+        fileMenu.addItem(exportMarkdown)
+        fileMenu.addItem(.separator())
         fileMenu.addItem(targeted("Delete Note", #selector(WindowManager.deleteFrontNote(_:)),
                                   "w", windowManager))
         main.addItem(submenu(fileMenu, title: "File"))

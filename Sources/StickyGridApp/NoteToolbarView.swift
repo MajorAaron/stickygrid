@@ -46,6 +46,9 @@ struct NoteToolbarView: View {
             }
             fontMenu
             aiMenu
+            toolbarButton("square.and.arrow.up", help: "Share Note") {
+                viewModel.onShare()
+            }
             toolbarButton(viewModel.pinned ? "pin.fill" : "pin",
                           help: viewModel.pinned ? "Unpin" : "Keep on Top") {
                 viewModel.pinned.toggle()

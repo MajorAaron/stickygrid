@@ -91,6 +91,10 @@ final class RichTextController {
         textView?.string ?? ""
     }
 
+    func markdownText() -> String {
+        textView?.markdownText() ?? ""
+    }
+
     /// Replaces the whole note body with plain text styled in the note's
     /// current font and ink. Goes through shouldChangeText/didChangeText so
     /// the swap is undoable and the header restyle + autosave fire.
