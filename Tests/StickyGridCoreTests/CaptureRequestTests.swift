@@ -74,6 +74,27 @@ struct CaptureRequestTests {
         #expect(CaptureRequest.from(url: url) == nil)
     }
 
+    @Test("an explicit title= param is remembered")
+    func explicitTitleRemembered() throws {
+        let url = try #require(URL(string: "stickygrid://new?title=Groceries&text=milk"))
+        #expect(CaptureRequest.from(url: url)?.hasExplicitTitle == true)
+    }
+
+    @Test("text-only URLs, bare new, and empty title are not explicit titles")
+    func noExplicitTitle() throws {
+        let textOnly = try #require(URL(string: "stickygrid://new?text=milk"))
+        #expect(CaptureRequest.from(url: textOnly)?.hasExplicitTitle == false)
+        let bare = try #require(URL(string: "stickygrid://new"))
+        #expect(CaptureRequest.from(url: bare)?.hasExplicitTitle == false)
+        let emptyTitle = try #require(URL(string: "stickygrid://new?title=&text=milk"))
+        #expect(CaptureRequest.from(url: emptyTitle)?.hasExplicitTitle == false)
+    }
+
+    @Test("plain text capture never has an explicit title")
+    func plainTextNoExplicitTitle() {
+        #expect(CaptureRequest.from(plainText: "hello")?.hasExplicitTitle == false)
+    }
+
     // MARK: Plain text (Services menu, clipboard)
 
     @Test("plain text is trimmed of surrounding whitespace")

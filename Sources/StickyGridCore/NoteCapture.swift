@@ -10,10 +10,15 @@ import Foundation
 public struct CaptureRequest: Equatable, Sendable {
     public var text: String
     public var color: NoteColor?
+    /// True when the capture's first line was explicitly chosen by the
+    /// caller (the URL scheme's `title=` param) rather than derived from
+    /// the body — auto-title must not stack a second title on it.
+    public var hasExplicitTitle: Bool
 
-    public init(text: String, color: NoteColor? = nil) {
+    public init(text: String, color: NoteColor? = nil, hasExplicitTitle: Bool = false) {
         self.text = text
         self.color = color
+        self.hasExplicitTitle = hasExplicitTitle
     }
 
     /// First line of the text, capped to the stored snippet length.
@@ -46,7 +51,8 @@ public struct CaptureRequest: Equatable, Sendable {
         }
 
         let text = [title, body].compactMap(\.self).joined(separator: "\n")
-        return CaptureRequest(text: text, color: color)
+        return CaptureRequest(text: text, color: color,
+                              hasExplicitTitle: !(title ?? "").isEmpty)
     }
 
     /// Wraps pasteboard/selection text; nil if there is nothing but whitespace.
