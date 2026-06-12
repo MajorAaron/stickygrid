@@ -120,6 +120,7 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   sticky list               # one line per note: id, title, color
   sticky cat groceries      # print a note by title words or id prefix
   sticky cat -m groceries   # ...as markdown: headings, bold, lists, quotes
+  sticky export ~/notes     # every note as a .md file — backup, grep, Obsidian
   ```
 
   `cat` matches an id prefix or a title substring and insists on a unique
@@ -128,8 +129,13 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   `sticky cat -m groceries | pbcopy` moves a styled note into any app
   that speaks markdown — and `-m` works the same way on capture, so
   `sticky cat -m plan | sticky -m -t "Plan (copy)"` duplicates a styled
-  note entirely from the shell. To capture a note whose body starts with
-  the word "list" or "cat", escape with `sticky -- list`.
+  note entirely from the shell. `export` writes the whole store into a
+  folder (created if missing), one markdown file per note — filenames come
+  from note titles (`Plan: Q3/Q4` → `Plan- Q3-Q4.md`, untitled notes become
+  `Untitled.md`, duplicate titles get a short-id suffix) — so pointing it
+  at an Obsidian vault, a git repo, or a backup directory just works; every
+  run rewrites the files in place. To capture a note whose body starts with
+  the word "list", "cat", or "export", escape with `sticky -- list`.
   Build and install it with:
 
   ```bash
