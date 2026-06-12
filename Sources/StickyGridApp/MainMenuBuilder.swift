@@ -122,6 +122,10 @@ enum MainMenuBuilder {
                              #selector(WindowManager.aiAskNote(_:)), "a", windowManager)
         askAI.keyEquivalentModifierMask = [.command, .option]
         aiMenu.addItem(askAI)
+        let askNotes = targeted("Ask Your Notes…",
+                                #selector(WindowManager.aiAskNotes(_:)), "a", windowManager)
+        askNotes.keyEquivalentModifierMask = [.command, .option, .shift]
+        aiMenu.addItem(askNotes)
         aiMenu.addItem(.separator())
         // Checkmark state comes from WindowManager.validateMenuItem.
         aiMenu.addItem(targeted(

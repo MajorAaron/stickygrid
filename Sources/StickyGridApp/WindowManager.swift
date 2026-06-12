@@ -382,8 +382,15 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         guard let content = try? String(contentsOf: url, encoding: .utf8) else {
             return false
         }
+        return createNote(fromMarkdown: content)
+    }
+
+    /// Creates one styled note from markdown content; false when blank.
+    /// Shared by file import and Ask Your Notes answers.
+    @discardableResult
+    func createNote(fromMarkdown markdown: String) -> Bool {
         let record = NoteRecord(frame: cascadeFrame())
-        guard let note = Self.importedNote(fromMarkdown: content, record: record)
+        guard let note = Self.importedNote(fromMarkdown: markdown, record: record)
         else { return false }
         var titled = record
         titled.titleSnippet = note.titleSnippet
@@ -452,6 +459,10 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     @objc func aiAskNote(_ sender: Any?) {
         guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
         promptAskAI(on: id)
+    }
+
+    @objc func aiAskNotes(_ sender: Any?) {
+        promptAskNotes()
     }
 
     @objc func aiSuggestColorNote(_ sender: Any?) {
@@ -553,6 +564,9 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         if item.action == #selector(toggleAutoTitleCapture(_:)) {
             item.state = Self.autoTitleCaptureEnabled ? .on : .off
         }
+        if item.action == #selector(aiAskNotes(_:)) {
+            return !askNotesBusy
+        }
         return true
     }
 
@@ -622,6 +636,70 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             alert.beginSheetModal(for: panel, completionHandler: run)
         } else {
             run(alert.runModal())
+        }
+    }
+
+    // MARK: Ask Your Notes
+
+    private static let lastAskNotesQuestionKey = "AILastAskNotesQuestion"
+
+    /// One question at a time; the menu item is the busy indicator (there
+    /// is no per-note spinner to borrow — this runs over the whole grid).
+    private var askNotesBusy = false
+
+    /// Asks a question across every note; the answer becomes a new note
+    /// whose Sources section deep-links back to the notes it used.
+    private func promptAskNotes() {
+        guard !askNotesBusy else { NSSound.beep(); return }
+        guard NoteAI.apiKey() != nil else {
+            promptForAPIKey()
+            return
+        }
+        let sources = NoteQA.sources(for: Array(store.records.values)) {
+            self.noteMarkdown($0)
+        }
+        guard !sources.isEmpty else { NSSound.beep(); return }
+
+        let alert = NSAlert()
+        alert.messageText = "Ask Your Notes"
+        alert.informativeText =
+            "Ask a question across all \(sources.count) "
+            + (sources.count == 1 ? "note" : "notes")
+            + " — the answer arrives as a new note that links back to its sources."
+        alert.addButton(withTitle: "Ask")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+        field.placeholderString = "What do you want to know?"
+        field.stringValue = UserDefaults.standard
+            .string(forKey: Self.lastAskNotesQuestionKey) ?? ""
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let question = field.stringValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty else { return }
+        UserDefaults.standard.set(question, forKey: Self.lastAskNotesQuestionKey)
+        performAskNotes(question: question, sources: sources)
+    }
+
+    private func performAskNotes(question: String, sources: [NoteQA.Source]) {
+        askNotesBusy = true
+        Task { @MainActor [weak self] in
+            defer { self?.askNotesBusy = false }
+            do {
+                let answer = try await NoteAI.answer(
+                    question: question,
+                    context: NoteQA.context(for: sources))
+                self?.createNote(
+                    fromMarkdown: NoteQA.answerMarkdown(question: question, answer: answer))
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Ask Your Notes failed"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .warning
+                alert.runModal()
+            }
         }
     }
 
