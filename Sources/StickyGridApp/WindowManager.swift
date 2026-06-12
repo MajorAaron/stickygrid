@@ -348,6 +348,27 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         suggestColor(on: id)
     }
 
+    // MARK: Auto-color on capture
+
+    private nonisolated static let autoColorCaptureKey = "AIAutoColorCapture"
+
+    /// Off by default: auto-color spends API tokens on every capture.
+    nonisolated static var autoColorCaptureEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: autoColorCaptureKey) }
+        set { UserDefaults.standard.set(newValue, forKey: autoColorCaptureKey) }
+    }
+
+    /// Whether a captured note should quietly color itself. Capture must
+    /// never prompt, so a missing key disables it; an explicit color in the
+    /// request means the caller already chose.
+    nonisolated static func shouldAutoColor(
+        request: CaptureRequest, enabled: Bool, hasAPIKey: Bool
+    ) -> Bool {
+        enabled && hasAPIKey && request.color == nil
+            && !request.text
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     /// Like runAI, but the result is a palette color instead of new text.
     private func suggestColor(on id: UUID) {
         guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
