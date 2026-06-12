@@ -954,6 +954,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+        addBacklinkItems(to: menu)
         let sorted = store.records.values.sorted {
             ($0.titleSnippet.isEmpty ? "Untitled" : $0.titleSnippet)
                 .localizedCaseInsensitiveCompare(
@@ -973,6 +974,32 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             item.representedObject = record.id
             menu.addItem(item)
         }
+    }
+
+    /// "Linked Here" — the notes whose text links to the front note,
+    /// recomputed from live editor text every time the menu opens so it
+    /// never goes stale. No focused note or no backlinks → no section.
+    private func addBacklinkItems(to menu: NSMenu) {
+        guard let target = noteID(of: NSApp.keyWindow) else { return }
+        let records = Array(store.records.values)
+        let backlinks = NoteBacklinks.records(linkingTo: target, in: records) {
+            self.viewModels[$0]?.textController.plainText()
+        }
+        guard !backlinks.isEmpty else { return }
+
+        let header = NSMenuItem(title: "Linked Here", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+        for record in backlinks {
+            let title = record.titleSnippet.isEmpty ? "Untitled" : record.titleSnippet
+            let item = NSMenuItem(title: title, action: #selector(focusNote(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = record.id
+            item.indentationLevel = 1
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
     }
 
     @objc private func focusNote(_ sender: NSMenuItem) {
