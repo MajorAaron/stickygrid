@@ -189,6 +189,15 @@ enum NoteAI {
             user: NoteQA.userMessage(question: question, context: context))
     }
 
+    /// Picks the notes related to the current one (Find Related Notes);
+    /// the caller parses the reply's links with `NoteRelated.ids` and
+    /// appends the Related section.
+    static func relatedNotes(title: String, body: String, context: String) async throws -> String {
+        try await complete(
+            system: NoteRelated.systemPrompt,
+            user: NoteRelated.userMessage(title: title, body: body, context: context))
+    }
+
     /// Proposes a short title for the note; the caller inserts it as a new
     /// first line. Replies are normalized by `sanitizedTitle`.
     static func suggestTitle(for text: String) async throws -> String {

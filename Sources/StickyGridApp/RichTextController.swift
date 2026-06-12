@@ -117,6 +117,16 @@ final class RichTextController {
         tv.didChangeText()
     }
 
+    /// Appends markdown at the end of the note, separated from existing
+    /// text by a blank line. Rides the markdown paste path, so bullets
+    /// render natively, the append is one undoable edit, and didChangeText
+    /// restyles links — appended deep links are clickable immediately.
+    func appendMarkdown(_ markdown: String) {
+        guard let tv = textView, let storage = tv.textStorage else { return }
+        tv.setSelectedRange(NSRange(location: storage.length, length: 0))
+        tv.insertMarkdown(storage.length == 0 ? markdown : "\n\n" + markdown)
+    }
+
     /// Replaces the whole note body with plain text styled in the note's
     /// current font and ink. Goes through shouldChangeText/didChangeText so
     /// the swap is undoable and the header restyle + autosave fire.
