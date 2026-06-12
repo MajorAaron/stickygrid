@@ -61,6 +61,11 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         if activate {
             NSApp.activate(ignoringOtherApps: true)
         }
+        if Self.shouldAutoColor(request: request,
+                                enabled: Self.autoColorCaptureEnabled,
+                                hasAPIKey: NoteAI.apiKey() != nil) {
+            suggestColor(on: record.id, quietly: true)
+        }
     }
 
     @objc func newNoteFromClipboard(_ sender: Any?) {
@@ -348,14 +353,52 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         suggestColor(on: id)
     }
 
+    // MARK: Auto-color on capture
+
+    private nonisolated static let autoColorCaptureKey = "AIAutoColorCapture"
+
+    /// Off by default: auto-color spends API tokens on every capture.
+    nonisolated static var autoColorCaptureEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: autoColorCaptureKey) }
+        set { UserDefaults.standard.set(newValue, forKey: autoColorCaptureKey) }
+    }
+
+    /// Whether a captured note should quietly color itself. Capture must
+    /// never prompt, so a missing key disables it; an explicit color in the
+    /// request means the caller already chose.
+    nonisolated static func shouldAutoColor(
+        request: CaptureRequest, enabled: Bool, hasAPIKey: Bool
+    ) -> Bool {
+        enabled && hasAPIKey && request.color == nil
+            && !request.text
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @objc func toggleAutoColorCapture(_ sender: Any?) {
+        Self.autoColorCaptureEnabled.toggle()
+    }
+
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        if item.action == #selector(toggleAutoColorCapture(_:)) {
+            item.state = Self.autoColorCaptureEnabled ? .on : .off
+        }
+        return true
+    }
+
     /// Like runAI, but the result is a palette color instead of new text.
-    private func suggestColor(on id: UUID) {
+    /// The quiet path (auto-color on capture) never beeps, prompts, or
+    /// alerts — its preconditions were checked by `shouldAutoColor`, and a
+    /// failed capture coloring just leaves the note as it is.
+    private func suggestColor(on id: UUID, quietly: Bool = false) {
         guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
         let text = viewModel.textController.plainText()
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { NSSound.beep(); return }
+        guard !text.isEmpty else {
+            if !quietly { NSSound.beep() }
+            return
+        }
         guard NoteAI.apiKey() != nil else {
-            promptForAPIKey()
+            if !quietly { promptForAPIKey() }
             return
         }
 
@@ -366,7 +409,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
                 viewModel.colorID = try await NoteAI.suggestColor(for: text)
                 self?.appearanceChanged(id)
             } catch {
-                self?.presentAIError(error, on: id)
+                if !quietly { self?.presentAIError(error, on: id) }
             }
         }
     }
