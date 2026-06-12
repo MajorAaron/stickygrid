@@ -203,6 +203,14 @@ week?", "where did I put the wifi password?". The answer arrives as a new
 sticky note with the question as its title and a **Sources** section of
 `stickygrid://open` links; click one to jump to the note it came from.
 
+**Find Related Notes** (sparkles or **AI** menu) turns a single note into a
+hub: the AI reads every *other* note and appends a **Related** section to
+this one — a bullet per related note, its title plus a clickable
+`stickygrid://open` link. Links are validated against the notes that
+actually exist (an invented link never survives), the append is one ⌘Z
+undo, and a "nothing related" reply tells you so instead of silently doing
+nothing.
+
 Transforms call the Anthropic API directly (model `claude-opus-4-8` by
 default; override with `defaults write` key `AIModel`). The API key is read
 from the `ANTHROPIC_API_KEY` environment variable, or from
