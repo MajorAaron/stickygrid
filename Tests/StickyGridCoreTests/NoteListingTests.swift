@@ -68,6 +68,23 @@ struct NoteListingTests {
         #expect(NoteListing.match("notes", in: [a, b]) == .many([a, b]))
     }
 
+    @Test("bestMatch: none is nil, one is the hit")
+    func bestMatchNoneAndOne() {
+        let r = record("AAAAAAAA-0000-0000-0000-000000000000", title: "Release Notes")
+        #expect(NoteListing.bestMatch("zzz", in: [r]) == nil)
+        #expect(NoteListing.bestMatch("release", in: [r]) == r)
+    }
+
+    @Test("bestMatch: ambiguity resolves in list order — pinned, then frontmost")
+    func bestMatchAmbiguous() {
+        let back = record("AAAAAAAA-0000-0000-0000-000000000000", title: "Notes back", zOrder: 2)
+        let front = record("BBBBBBBB-0000-0000-0000-000000000000", title: "Notes front", zOrder: 0)
+        let pinned = record("CCCCCCCC-0000-0000-0000-000000000000", title: "Notes pinned",
+                            pinned: true, zOrder: 5)
+        #expect(NoteListing.bestMatch("notes", in: [back, front]) == front)
+        #expect(NoteListing.bestMatch("notes", in: [back, front, pinned]) == pinned)
+    }
+
     @Test("STICKYGRID_DIR overrides the Application Support default")
     func directoryResolution() {
         let home = URL(fileURLWithPath: "/Users/zoe")

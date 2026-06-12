@@ -166,6 +166,50 @@ struct CaptureCommandTests {
         }
     }
 
+    @Test("first argument open joins the rest into one query")
+    func openSubcommand() throws {
+        #expect(try CaptureCommand.parse(["open", "groceries"])
+                == .open(query: "groceries", printOnly: false))
+        #expect(try CaptureCommand.parse(["open", "release", "notes"])
+                == .open(query: "release notes", printOnly: false))
+    }
+
+    @Test("open --print prints the link instead, anywhere in the args")
+    func openPrintFlag() throws {
+        #expect(try CaptureCommand.parse(["open", "--print", "groceries"])
+                == .open(query: "groceries", printOnly: true))
+        #expect(try CaptureCommand.parse(["open", "release", "--print"])
+                == .open(query: "release", printOnly: true))
+    }
+
+    @Test("open -- stops flag scanning so --print can be a query")
+    func openDoubleDash() throws {
+        #expect(try CaptureCommand.parse(["open", "--", "--print"])
+                == .open(query: "--print", printOnly: false))
+    }
+
+    @Test("open keeps other dashed words as query text")
+    func openDashedQuery() throws {
+        #expect(try CaptureCommand.parse(["open", "to-do"])
+                == .open(query: "to-do", printOnly: false))
+    }
+
+    @Test("open with no query is a usage error")
+    func openNeedsQuery() {
+        #expect(throws: CaptureCommand.ParseError.missingValue("open")) {
+            try CaptureCommand.parse(["open"])
+        }
+        #expect(throws: CaptureCommand.ParseError.missingValue("open")) {
+            try CaptureCommand.parse(["open", "--print"])
+        }
+    }
+
+    @Test("-- open is still a captured note body, not a subcommand")
+    func dashDashEscapesOpen() throws {
+        #expect(try CaptureCommand.parse(["--", "open"])
+                == .new(body: "open", title: nil, color: nil, printOnly: false, markdown: false))
+    }
+
     @Test("-- export is still a captured note body, not a subcommand")
     func dashDashEscapesExport() throws {
         #expect(try CaptureCommand.parse(["--", "export"])
