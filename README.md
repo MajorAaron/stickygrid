@@ -115,11 +115,15 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   ```bash
   sticky list               # one line per note: id, title, color
   sticky cat groceries      # print a note by title words or id prefix
+  sticky cat -m groceries   # ...as markdown: headings, bold, lists, quotes
   ```
 
   `cat` matches an id prefix or a title substring and insists on a unique
-  hit (ambiguous queries list the candidates). To capture a note whose
-  body starts with the word "list" or "cat", escape with `sticky -- list`.
+  hit (ambiguous queries list the candidates). `-m`/`--markdown` prints
+  the note with its styling intact — the same serialization as ⌥⌘C — so
+  `sticky cat -m groceries | pbcopy` moves a styled note into any app
+  that speaks markdown. To capture a note whose body starts with the
+  word "list" or "cat", escape with `sticky -- list`.
   Build and install it with:
 
   ```bash
