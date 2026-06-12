@@ -109,4 +109,51 @@ extension StickyTextView {
         setSelectedRange(NSRange(location: typedRange.location + (literal as NSString).length,
                                  length: 0))
     }
+
+    // MARK: Checkbox toggling
+
+    /// Toggles the checkbox marker whose glyph starts at `index`. Returns
+    /// true when a toggle happened. Undoable as a single step.
+    @discardableResult
+    func toggleCheckbox(at index: Int) -> Bool {
+        guard let storage = textStorage else { return false }
+        let text = storage.string as NSString
+        guard index < text.length else { return false }
+        let paragraph = text.paragraphRange(for: NSRange(location: index, length: 0))
+        guard paragraph.location == index,
+              let marker = MarkdownTyping.LineMarker.parse(
+                  paragraph: text.substring(with: paragraph)),
+              case .checkbox(let checked) = marker
+        else { return false }
+
+        let range = NSRange(location: index, length: 1)
+        let replacement = checked ? "\u{2610}" : "\u{2611}"
+        guard shouldChangeText(in: range, replacementString: replacement) else { return false }
+        breakUndoCoalescing()
+        storage.replaceCharacters(in: range, with: replacement)
+        didChangeText()
+        return true
+    }
+
+    /// Character index of the checkbox glyph under a click, or nil. The click
+    /// must land on the glyph itself, not merely on its line.
+    func checkboxIndex(at event: NSEvent) -> Int? {
+        guard let layoutManager, let textContainer,
+              let storage = textStorage, storage.length > 0 else { return nil }
+        var point = convert(event.locationInWindow, from: nil)
+        point.x -= textContainerOrigin.x
+        point.y -= textContainerOrigin.y
+        let index = layoutManager.characterIndex(
+            for: point, in: textContainer,
+            fractionOfDistanceBetweenInsertionPoints: nil)
+        guard index < storage.length else { return nil }
+        let ch = (storage.string as NSString).character(at: index)
+        guard ch == 0x2610 || ch == 0x2611 else { return nil }  // ☐ / ☑
+        let glyphs = layoutManager.glyphRange(
+            forCharacterRange: NSRange(location: index, length: 1),
+            actualCharacterRange: nil)
+        let rect = layoutManager.boundingRect(forGlyphRange: glyphs, in: textContainer)
+        guard rect.insetBy(dx: -2, dy: -2).contains(point) else { return nil }
+        return index
+    }
 }

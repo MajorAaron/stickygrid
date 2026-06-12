@@ -210,3 +210,27 @@ struct ContinuationTests {
         #expect((style?.headIndent ?? 0) == 0)  // indent cleared
     }
 }
+
+@Suite("Markdown typing — checkbox toggle")
+@MainActor
+struct CheckboxToggleTests {
+
+    @Test("toggling flips the glyph both ways")
+    func toggle() {
+        let tv = makeNote()
+        type("Title\n[ ] buy", into: tv)
+        #expect(tv.toggleCheckbox(at: 6))
+        #expect(tv.string == "Title\n\u{2611}\tbuy")
+        #expect(tv.toggleCheckbox(at: 6))
+        #expect(tv.string == "Title\n\u{2610}\tbuy")
+    }
+
+    @Test("only the marker position toggles")
+    func onlyMarker() {
+        let tv = makeNote()
+        type("Title\n[ ] buy", into: tv)
+        #expect(!tv.toggleCheckbox(at: 8))   // body text, not the marker
+        #expect(!tv.toggleCheckbox(at: 0))   // header line, no marker
+        #expect(tv.string == "Title\n\u{2610}\tbuy")
+    }
+}

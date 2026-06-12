@@ -237,6 +237,11 @@ final class StickyTextView: NSTextView {
         convertMarkdownIfNeeded(afterTyping: typed)
     }
 
+    override func mouseDown(with event: NSEvent) {
+        if let index = checkboxIndex(at: event), toggleCheckbox(at: index) { return }
+        super.mouseDown(with: event)
+    }
+
     // MARK: List continuation on return
     // Bullets repeat, numbered items increment, checkboxes continue
     // unchecked. Continuation markers are inserted via insertText but are
