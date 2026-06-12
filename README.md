@@ -36,6 +36,9 @@ fills your screen.
 - Capture from anywhere: a global ⌃⌥N Quick Capture palette, a `stickygrid://`
   URL scheme, a `sticky` command-line tool, a Services menu entry, and ⇧⌘N
   for the clipboard (see below)
+- Deep links to notes: `stickygrid://open?note=<id or title>` raises a
+  specific sticky from any app; `sticky open --print` mints the link
+  (see below)
 - AI Assist: summarize a note, turn it into a checklist, or polish the writing
   (see below)
 - Find in Notes (⌘F) — a Spotlight-style palette that live-searches every
@@ -124,6 +127,8 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   sticky list               # one line per note: id, title, color
   sticky cat groceries      # print a note by title words or id prefix
   sticky cat -m groceries   # ...as markdown: headings, bold, lists, quotes
+  sticky open groceries     # raise that note's window
+  sticky open --print plan  # print a durable stickygrid://open link instead
   sticky export ~/notes     # every note as a .md file — backup, grep, Obsidian
   ```
 
@@ -138,9 +143,14 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   from note titles (`Plan: Q3/Q4` → `Plan- Q3-Q4.md`, untitled notes become
   `Untitled.md`, duplicate titles get a short-id suffix) — so pointing it
   at an Obsidian vault, a git repo, or a backup directory just works; every
-  run rewrites the files in place. To capture a note whose body starts with
-  the word "list", "cat", or "export", escape with `sticky -- list`.
-  Build and install it with:
+  run rewrites the files in place. `open` jumps to a note — same matcher as
+  `cat` — and `open --print` emits a `stickygrid://open?note=<uuid>` link
+  you can embed anywhere that speaks URLs (an Obsidian page, a calendar
+  event, a script): opening it later raises that exact sticky. Other apps
+  can also link by title: `stickygrid://open?note=groceries` focuses the
+  best title match (pinned notes win ties). To capture a note whose body
+  starts with the word "list", "cat", "open", or "export", escape with
+  `sticky -- list`. Build and install it with:
 
   ```bash
   swift build -c release --product sticky
