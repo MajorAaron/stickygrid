@@ -140,6 +140,38 @@ struct CaptureCommandTests {
         }
     }
 
+    @Test("first argument export takes a single directory")
+    func exportSubcommand() throws {
+        #expect(try CaptureCommand.parse(["export", "/tmp/notes"])
+                == .export(directory: "/tmp/notes"))
+    }
+
+    @Test("export -- lets a directory start with a dash")
+    func exportDoubleDash() throws {
+        #expect(try CaptureCommand.parse(["export", "--", "-odd-dir"])
+                == .export(directory: "-odd-dir"))
+    }
+
+    @Test("export with no directory is a usage error")
+    func exportNeedsDirectory() {
+        #expect(throws: CaptureCommand.ParseError.missingValue("export")) {
+            try CaptureCommand.parse(["export"])
+        }
+    }
+
+    @Test("export with a second positional is a usage error, not a join")
+    func exportRejectsExtraArguments() {
+        #expect(throws: CaptureCommand.ParseError.extraArgument("b")) {
+            try CaptureCommand.parse(["export", "a", "b"])
+        }
+    }
+
+    @Test("-- export is still a captured note body, not a subcommand")
+    func dashDashEscapesExport() throws {
+        #expect(try CaptureCommand.parse(["--", "export"])
+                == .new(body: "export", title: nil, color: nil, printOnly: false, markdown: false))
+    }
+
     @Test("-- list is still a captured note body, not a subcommand")
     func dashDashEscapesSubcommand() throws {
         #expect(try CaptureCommand.parse(["--", "list"])
