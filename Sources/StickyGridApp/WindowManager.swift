@@ -51,7 +51,8 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         record.titleSnippet = request.titleSnippet
         store.upsert(record)
         openWindow(for: record, focus: activate,
-                   initialText: request.text.isEmpty ? nil : request.text)
+                   initialRTF: request.text.isEmpty
+                       ? nil : Self.rtf(from: request.text, record: record))
         if !request.text.isEmpty {
             // The text arrived pre-typed; mark it dirty so the RTF persists
             // even if the user never edits the note.
@@ -71,14 +72,14 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         createNote(from: request)
     }
 
-    private func openWindow(for record: NoteRecord, focus: Bool, initialText: String? = nil) {
+    private func openWindow(for record: NoteRecord, focus: Bool, initialRTF: Data? = nil) {
         var record = record
         record.frame = rescueFrameIfOffScreen(record.frame)
 
         let viewModel = NoteViewModel(record: record)
         viewModel.initialRTF = store.loadRTF(for: record.id)
-        if let initialText, viewModel.initialRTF.isEmpty {
-            viewModel.initialRTF = Self.rtf(from: initialText, record: record)
+        if let initialRTF, viewModel.initialRTF.isEmpty {
+            viewModel.initialRTF = initialRTF
         }
         let id = record.id
         viewModel.onNewNote = { [weak self] in self?.newNote(nil) }
@@ -251,6 +252,77 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             .trimmingCharacters(in: .whitespaces)
             .prefix(60)
         return (sanitized.isEmpty ? "Note" : String(sanitized)) + ".md"
+    }
+
+    // MARK: Markdown file import
+
+    /// File → Import Markdown…: every chosen file becomes one styled note.
+    @objc func importMarkdownFiles(_ sender: Any?) {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText,
+                                     UTType(filenameExtension: "markdown") ?? .plainText,
+                                     .plainText]
+        panel.message = "Each markdown file becomes a new sticky note."
+        panel.begin { [weak self] response in
+            guard response == .OK, let self else { return }
+            let imported = panel.urls.filter { self.importNote(from: $0) }
+            if imported.isEmpty { NSSound.beep() }
+        }
+    }
+
+    /// Creates one note from a markdown file; false when the file is
+    /// unreadable or blank.
+    @discardableResult
+    func importNote(from url: URL) -> Bool {
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+            return false
+        }
+        let record = NoteRecord(frame: cascadeFrame())
+        guard let note = Self.importedNote(fromMarkdown: content, record: record)
+        else { return false }
+        var titled = record
+        titled.titleSnippet = note.titleSnippet
+        store.upsert(titled)
+        openWindow(for: titled, focus: true, initialRTF: note.rtf)
+        // The text arrived pre-typed; mark it dirty so the RTF persists even
+        // if the user never edits the note.
+        store.markTextChanged(titled.id, snippet: note.titleSnippet)
+        return true
+    }
+
+    /// A markdown file's content rendered for a new note: RTF in the
+    /// record's font and ink, plus the title snippet. Nil when the content
+    /// is blank. A scratch editor (never shown) runs the same conversion as
+    /// markdown paste, so marker literals, fonts, and list indentation match
+    /// typed and pasted notes exactly.
+    static func importedNote(
+        fromMarkdown markdown: String, record: NoteRecord
+    ) -> (rtf: Data, titleSnippet: String)? {
+        guard !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return nil }
+
+        let scratch = StickyTextView(usingTextLayoutManager: false)
+        scratch.isRichText = true
+        let font = NSFont(name: record.fontName, size: record.fontSize)
+            ?? .systemFont(ofSize: record.fontSize)
+        scratch.typingAttributes = [
+            .font: font,
+            .foregroundColor: NSColor(record.ink.resolved(on: record.colorID)),
+        ]
+        scratch.bodyFont = font
+        scratch.insertMarkdown(markdown)
+
+        guard let storage = scratch.textStorage, storage.length > 0,
+              let rtf = storage.rtf(
+                  from: NSRange(location: 0, length: storage.length),
+                  documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
+        else { return nil }
+        let title = scratch.string
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .first.map(String.init) ?? ""
+        return (rtf, String(title.prefix(40)))
     }
 
     // MARK: AI Assist
