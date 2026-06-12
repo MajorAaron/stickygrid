@@ -237,6 +237,22 @@ final class StickyTextView: NSTextView {
         convertMarkdownIfNeeded(afterTyping: typed)
     }
 
+    // MARK: Markdown paste (conversion logic in +Import.swift)
+    // Plain-text pastes that contain markdown convert to styled runs; rich
+    // (RTF) pastes and plain pastes with no markdown keep default behavior.
+
+    override func paste(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+        let types = pasteboard.types ?? []
+        if !types.contains(.rtf), !types.contains(.rtfd),
+           let text = pasteboard.string(forType: .string),
+           MarkdownImport.detectsMarkdown(text) {
+            insertMarkdown(text)
+            return
+        }
+        super.paste(sender)
+    }
+
     override func mouseDown(with event: NSEvent) {
         if let index = checkboxIndex(at: event), toggleCheckbox(at: index) { return }
         super.mouseDown(with: event)

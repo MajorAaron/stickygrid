@@ -16,6 +16,9 @@ fills your screen.
 - Markdown typing shortcuts: `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``
   convert as you type; `- `, `1. `, and `- [ ] ` start bullet, numbered, and
   clickable-checkbox lists. Markers vanish; ⌘Z brings them back.
+- Markdown paste: ⌘V a block of markdown (from a chat reply, a README, another
+  notes app) and the same styles, lists, checkboxes, and headings convert on
+  the way in. Plain text without markdown pastes untouched.
 - The first line of every note is its title — automatically bold and larger,
   so a wall of notes stays scannable
 - Per-note font family and size
