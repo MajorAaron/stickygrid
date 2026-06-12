@@ -152,9 +152,11 @@ struct NoteToolbarView: View {
 
     private var aiMenu: some View {
         Menu {
-            ForEach(NoteAIAction.allCases) { action in
+            ForEach(NoteAIAction.presets) { action in
                 Button(action.title) { viewModel.onAIAction(action) }
             }
+            Divider()
+            Button("Ask AI…") { viewModel.onAskAI() }
         } label: {
             if viewModel.aiBusy {
                 ProgressView()
