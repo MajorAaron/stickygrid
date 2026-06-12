@@ -24,6 +24,18 @@ extension StickyTextView {
             guard let match = MarkdownTyping.inlineMatch(
                 paragraph: paragraphText, caret: caretInParagraph) else { return }
             applyInline(match, paragraphStart: paragraph.location)
+        case " ":
+            let prefix = (paragraphText as NSString).substring(to: caretInParagraph)
+            if MarkdownTyping.LineMarker.parse(paragraph: paragraphText) == nil,
+               let marker = MarkdownTyping.listTrigger(linePrefix: prefix) {
+                applyListMarker(marker, replacing: NSRange(location: paragraph.location,
+                                                           length: caretInParagraph))
+            } else if prefix.hasPrefix(Self.bulletPrefix),
+                      let marker = MarkdownTyping.checkboxUpgrade(
+                          afterBullet: String(prefix.dropFirst(Self.bulletPrefix.count))) {
+                applyListMarker(marker, replacing: NSRange(location: paragraph.location,
+                                                           length: caretInParagraph))
+            }
         default:
             return
         }
@@ -77,5 +89,24 @@ extension StickyTextView {
         didChangeText()
         setSelectedRange(NSRange(location: full.location + styled.length, length: 0))
         typingAttributes = savedTyping
+    }
+
+    private func applyListMarker(_ marker: MarkdownTyping.LineMarker,
+                                 replacing typedRange: NSRange) {
+        guard let storage = textStorage else { return }
+        let literal = marker.literal
+        guard shouldChangeText(in: typedRange, replacementString: literal) else { return }
+        breakUndoCoalescing()
+        storage.beginEditing()
+        storage.replaceCharacters(
+            in: typedRange,
+            with: NSAttributedString(string: literal, attributes: typingAttributes))
+        storage.endEditing()
+        let paragraph = (storage.string as NSString)
+            .paragraphRange(for: NSRange(location: typedRange.location, length: 0))
+        applyListIndent(true, to: paragraph, storage: storage)
+        didChangeText()
+        setSelectedRange(NSRange(location: typedRange.location + (literal as NSString).length,
+                                 length: 0))
     }
 }

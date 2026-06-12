@@ -1,11 +1,12 @@
 import AppKit
+import StickyGridCore
 
 /// TextKit 1 text view with strikethrough and bullet-list actions.
 /// Actions are @objc and nil-target-routable so Format menu items reach the
 /// focused note via the responder chain; the toolbar calls them directly.
 final class StickyTextView: NSTextView {
 
-    static let bulletPrefix = "•\t"
+    static let bulletPrefix = MarkdownTyping.LineMarker.bullet.literal
     private static let bulletIndent: CGFloat = 22
 
     // MARK: Bold / italic
@@ -208,7 +209,7 @@ final class StickyTextView: NSTextView {
         return paragraphHasMarker(at: p.location)
     }
 
-    private func applyListIndent(_ on: Bool, to range: NSRange, storage: NSTextStorage) {
+    func applyListIndent(_ on: Bool, to range: NSRange, storage: NSTextStorage) {
         let style = NSMutableParagraphStyle()
         if let existing = (range.length > 0
             ? storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil)

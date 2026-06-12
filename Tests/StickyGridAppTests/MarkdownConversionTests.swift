@@ -117,3 +117,59 @@ struct InlineConversionTests {
         #expect(tv.string == "Title\n** bold**")
     }
 }
+
+@Suite("Markdown typing — list triggers")
+@MainActor
+struct ListConversionTests {
+
+    @Test("- space becomes a bullet")
+    func bullet() {
+        let tv = makeNote()
+        type("Title\n- milk", into: tv)
+        #expect(tv.string == "Title\n\u{2022}\tmilk")
+    }
+
+    @Test("1. space becomes a numbered item keeping the number")
+    func numbered() {
+        let tv = makeNote()
+        type("Title\n3. eggs", into: tv)
+        #expect(tv.string == "Title\n3.\teggs")
+    }
+
+    @Test("[ ] space becomes an unchecked checkbox")
+    func checkbox() {
+        let tv = makeNote()
+        type("Title\n[ ] buy", into: tv)
+        #expect(tv.string == "Title\n\u{2610}\tbuy")
+    }
+
+    @Test("the full - [ ] sequence lands as a checkbox via bullet upgrade")
+    func checkboxViaBullet() {
+        let tv = makeNote()
+        type("Title\n- [ ] buy", into: tv)
+        #expect(tv.string == "Title\n\u{2610}\tbuy")
+    }
+
+    @Test("- [x] yields a checked checkbox")
+    func checkedViaBullet() {
+        let tv = makeNote()
+        type("Title\n- [x] done", into: tv)
+        #expect(tv.string == "Title\n\u{2611}\tdone")
+    }
+
+    @Test("trigger only fires at the start of a plain paragraph")
+    func midLineNoTrigger() {
+        let tv = makeNote()
+        type("Title\nmilk - eggs", into: tv)
+        #expect(tv.string == "Title\nmilk - eggs")
+    }
+
+    @Test("list paragraphs get the hanging indent")
+    func indent() {
+        let tv = makeNote()
+        type("Title\n- milk", into: tv)
+        let style = tv.textStorage!.attribute(
+            .paragraphStyle, at: 6, effectiveRange: nil) as! NSParagraphStyle
+        #expect(style.headIndent == 22)
+    }
+}
