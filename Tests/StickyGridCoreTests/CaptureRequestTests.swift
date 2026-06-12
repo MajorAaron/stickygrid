@@ -95,6 +95,31 @@ struct CaptureRequestTests {
         #expect(CaptureRequest.from(plainText: "hello")?.hasExplicitTitle == false)
     }
 
+    // MARK: markdown= param
+
+    @Test("markdown=1 and markdown=true mark the body as markdown")
+    func markdownParamParsed() throws {
+        let one = try #require(URL(string: "stickygrid://new?text=hi&markdown=1"))
+        #expect(CaptureRequest.from(url: one)?.markdown == true)
+        let word = try #require(URL(string: "stickygrid://new?text=hi&markdown=TRUE"))
+        #expect(CaptureRequest.from(url: word)?.markdown == true)
+    }
+
+    @Test("absent, zero, or garbage markdown values stay plain")
+    func markdownParamDefaultsOff() throws {
+        let absent = try #require(URL(string: "stickygrid://new?text=hi"))
+        #expect(CaptureRequest.from(url: absent)?.markdown == false)
+        let zero = try #require(URL(string: "stickygrid://new?text=hi&markdown=0"))
+        #expect(CaptureRequest.from(url: zero)?.markdown == false)
+        let junk = try #require(URL(string: "stickygrid://new?text=hi&markdown=banana"))
+        #expect(CaptureRequest.from(url: junk)?.markdown == false)
+    }
+
+    @Test("plain text capture is never markdown")
+    func plainTextNeverMarkdown() {
+        #expect(CaptureRequest.from(plainText: "**hi**")?.markdown == false)
+    }
+
     // MARK: Plain text (Services menu, clipboard)
 
     @Test("plain text is trimmed of surrounding whitespace")

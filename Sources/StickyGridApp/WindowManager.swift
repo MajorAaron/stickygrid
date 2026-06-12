@@ -48,15 +48,14 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     func createNote(from request: CaptureRequest, activate: Bool = true) {
         var record = NoteRecord(frame: cascadeFrame())
         if let color = request.color { record.colorID = color }
-        record.titleSnippet = request.titleSnippet
+        let content = Self.captureContent(for: request, record: record)
+        record.titleSnippet = content.titleSnippet
         store.upsert(record)
-        openWindow(for: record, focus: activate,
-                   initialRTF: request.text.isEmpty
-                       ? nil : Self.rtf(from: request.text, record: record))
-        if !request.text.isEmpty {
+        openWindow(for: record, focus: activate, initialRTF: content.rtf)
+        if content.rtf != nil {
             // The text arrived pre-typed; mark it dirty so the RTF persists
             // even if the user never edits the note.
-            store.markTextChanged(record.id, snippet: request.titleSnippet)
+            store.markTextChanged(record.id, snippet: content.titleSnippet)
         }
         if activate {
             NSApp.activate(ignoringOtherApps: true)
@@ -347,6 +346,21 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             .split(separator: "\n", omittingEmptySubsequences: true)
             .first.map(String.init) ?? ""
         return (rtf, String(title.prefix(40)))
+    }
+
+    /// A capture request rendered for its new note: markdown requests go
+    /// through the same scratch-editor conversion as file import (snippet
+    /// from the rendered text, so `# Heading` lists as `Heading`); plain
+    /// requests keep today's verbatim RTF. Nil RTF means an empty note.
+    static func captureContent(
+        for request: CaptureRequest, record: NoteRecord
+    ) -> (rtf: Data?, titleSnippet: String) {
+        if request.markdown,
+           let note = importedNote(fromMarkdown: request.text, record: record) {
+            return (note.rtf, note.titleSnippet)
+        }
+        return (request.text.isEmpty ? nil : rtf(from: request.text, record: record),
+                request.titleSnippet)
     }
 
     // MARK: AI Assist

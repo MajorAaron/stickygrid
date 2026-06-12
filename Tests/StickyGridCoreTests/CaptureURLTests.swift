@@ -46,6 +46,24 @@ struct CaptureURLTests {
         #expect(url.absoluteString == "stickygrid://new")
     }
 
+    @Test("markdown: true emits markdown=1 and round-trips")
+    func markdownRoundTrips() throws {
+        let url = CaptureRequest.captureURL(body: "get **milk**", title: nil,
+                                            color: nil, markdown: true)
+        #expect(url.query?.contains("markdown=1") == true)
+        let request = try #require(CaptureRequest.from(url: url))
+        #expect(request.markdown)
+        #expect(request.text == "get **milk**")
+    }
+
+    @Test("markdown: false omits the param entirely")
+    func markdownOmittedWhenFalse() throws {
+        let url = CaptureRequest.captureURL(body: "hi", title: nil,
+                                            color: nil, markdown: false)
+        #expect(url.query?.contains("markdown") != true)
+        #expect(try #require(CaptureRequest.from(url: url)).markdown == false)
+    }
+
     @Test("title alone round-trips with hasExplicitTitle")
     func titleOnly() throws {
         let url = CaptureRequest.captureURL(body: nil, title: "Call mom", color: nil)

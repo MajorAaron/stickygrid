@@ -19,14 +19,16 @@ notes (read-only); use `sticky -- list` to capture the word "list".
 options:
   -t, --title <text>   first line of the note
   -c, --color <name>   yellow pink blue green purple orange gray white
+  -m, --markdown       capture: style the body as markdown on arrival
+                       cat: print the note as markdown, styles intact
       --print          print the stickygrid:// URL instead of opening it
-  -m, --markdown       (cat) print the note as markdown, styles intact
   -h, --help           show this help
 
 examples:
   sticky Buy milk
   git log --oneline -5 | sticky -t "Release notes" -c blue
   sticky cat -m release | pbcopy
+  sticky cat -m release | sticky -m -t "Release (copy)"
 """
 
 func fail(_ message: String, code: Int32) -> Never {
@@ -108,7 +110,7 @@ case .new:
     break
 }
 
-guard case .new(var body, let title, let color, let printOnly) = command else {
+guard case .new(var body, let title, let color, let printOnly, let markdown) = command else {
     exit(0)  // unreachable — every other case exited above
 }
 
@@ -123,7 +125,8 @@ guard body != nil || title != nil else {
     fail(usage, code: 64)
 }
 
-let url = CaptureRequest.captureURL(body: body, title: title, color: color)
+let url = CaptureRequest.captureURL(body: body, title: title, color: color,
+                                    markdown: markdown)
 
 if printOnly {
     print(url.absoluteString)
