@@ -107,7 +107,20 @@ Six ways to get text into a sticky without switching to StickyGrid first:
 
   Words join into the body; with no words the body is read from piped
   stdin; `--title`/`-t` sets the first line and `--color`/`-c` one of the
-  eight palette names. Build and install it with:
+  eight palette names.
+
+  The CLI also reads your notes back out (read-only — safe while the app
+  is running):
+
+  ```bash
+  sticky list               # one line per note: id, title, color
+  sticky cat groceries      # print a note by title words or id prefix
+  ```
+
+  `cat` matches an id prefix or a title substring and insists on a unique
+  hit (ambiguous queries list the candidates). To capture a note whose
+  body starts with the word "list" or "cat", escape with `sticky -- list`.
+  Build and install it with:
 
   ```bash
   swift build -c release --product sticky
