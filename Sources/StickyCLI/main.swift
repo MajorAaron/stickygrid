@@ -1,15 +1,20 @@
+import AppKit
 import Foundation
 import StickyGridCore
 
-// sticky — capture a note from the shell through stickygrid://new.
-// All the logic lives (tested) in StickyGridCore; this file is glue.
+// sticky — capture a note from the shell through stickygrid://new, or read
+// the store back with list/cat. All the logic lives (tested) in
+// StickyGridCore; this file is glue.
 
 let usage = """
 usage: sticky [options] [--] [words...]
        <command> | sticky [options]
+       sticky list
+       sticky cat <id-prefix or title words>
 
 Creates a StickyGrid note. Words join into the note body; with no words,
-the body is read from piped stdin.
+the body is read from piped stdin. `list` and `cat` read your existing
+notes (read-only); use `sticky -- list` to capture the word "list".
 
 options:
   -t, --title <text>   first line of the note
@@ -20,6 +25,7 @@ options:
 examples:
   sticky Buy milk
   git log --oneline -5 | sticky -t "Release notes" -c blue
+  sticky cat release
 """
 
 func fail(_ message: String, code: Int32) -> Never {
@@ -39,9 +45,55 @@ do {
     fail("sticky: \(reason)\n\n" + usage, code: 64)
 }
 
-guard case .new(var body, let title, let color, let printOnly) = command else {
+// The read-only subcommands look straight at the app's store on disk —
+// they never write, so running them while StickyGrid is open is safe.
+let storeDir = NoteListing.storeDirectory(
+    environment: ProcessInfo.processInfo.environment,
+    home: FileManager.default.homeDirectoryForCurrentUser)
+
+func loadRecords() -> [NoteRecord] {
+    guard let data = try? Data(contentsOf: storeDir.appendingPathComponent("notes.json")),
+          let document = try? NotesDocument.decode(from: data)
+    else { return [] }
+    return document.notes
+}
+
+switch command {
+case .help:
     print(usage)
     exit(0)
+case .list:
+    let records = loadRecords()
+    if records.isEmpty { print("no notes"); exit(0) }
+    NoteListing.lines(for: records).forEach { print($0) }
+    exit(0)
+case .cat(let query):
+    let records = loadRecords()
+    switch NoteListing.match(query, in: records) {
+    case .none:
+        fail("sticky: no note matching \"\(query)\"", code: 1)
+    case .many(let hits):
+        let lines = NoteListing.lines(for: hits).joined(separator: "\n")
+        fail("sticky: \"\(query)\" matches several notes:\n" + lines, code: 1)
+    case .one(let record):
+        let rtfURL = storeDir.appendingPathComponent("\(record.id.uuidString).rtf")
+        // init?(rtf:) is not registered in headless processes — go through
+        // the document-reading initializer instead.
+        if let data = try? Data(contentsOf: rtfURL),
+           let text = try? NSAttributedString(
+               data: data,
+               options: [.documentType: NSAttributedString.DocumentType.rtf],
+               documentAttributes: nil) {
+            print(text.string)
+        }
+        exit(0)
+    }
+case .new:
+    break
+}
+
+guard case .new(var body, let title, let color, let printOnly) = command else {
+    exit(0)  // unreachable — every other case exited above
 }
 
 // No words on the command line: take the body from a pipe, but never
