@@ -41,6 +41,9 @@ fills your screen.
   `sticky open --print` mints the link. URLs inside note text are
   clickable — paste one note's link into another and click to jump
   between them; web links open in the browser (see below)
+- Backlinks: the Notes menu opens with a **Linked Here** section — the
+  notes whose text links *to* the front note, recomputed live every time
+  the menu opens. Pick one to jump to it; no links here, no section.
 - AI Assist: summarize a note, turn it into a checklist, or polish the writing
   (see below)
 - Find in Notes (⌘F) — a Spotlight-style palette that live-searches every
@@ -209,7 +212,9 @@ this one — a bullet per related note, its title plus a clickable
 `stickygrid://open` link. Links are validated against the notes that
 actually exist (an invented link never survives), the append is one ⌘Z
 undo, and a "nothing related" reply tells you so instead of silently doing
-nothing.
+nothing. Those links work in both directions: the Notes menu's **Linked
+Here** section (no AI involved) shows the notes that link *to* the front
+note, so a hub's spokes know their way back.
 
 Transforms call the Anthropic API directly (model `claude-opus-4-8` by
 default; override with `defaults write` key `AIModel`). The API key is read
