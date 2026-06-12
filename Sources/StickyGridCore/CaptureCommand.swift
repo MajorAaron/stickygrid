@@ -7,19 +7,21 @@ import Foundation
 /// Positional words join into the body; no positionals leaves the body nil
 /// so the executable can fill it from stdin.
 ///
-/// A first argument of exactly `list` or `cat` dispatches the read-only
-/// subcommands instead (`sticky -- list` escapes back to capture).
+/// A first argument of exactly `list`, `cat`, or `export` dispatches the
+/// read-only subcommands instead (`sticky -- list` escapes back to capture).
 public enum CaptureCommand: Equatable, Sendable {
     case help
     case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool,
              markdown: Bool)
     case list
     case cat(query: String, markdown: Bool)
+    case export(directory: String)
 
     public enum ParseError: Error, Equatable {
         case unknownOption(String)
         case missingValue(String)
         case unknownColor(String)
+        case extraArgument(String)
     }
 
     public static func parse(_ args: [String]) throws(ParseError) -> CaptureCommand {
@@ -43,6 +45,19 @@ public enum CaptureCommand: Equatable, Sendable {
             }
             guard !queryWords.isEmpty else { throw .missingValue("cat") }
             return .cat(query: queryWords.joined(separator: " "), markdown: markdown)
+        case "export":
+            // Exactly one directory; a path with spaces is one shell-quoted
+            // argument, so a second positional is always a mistake. A
+            // leading `--` lets the directory itself start with a dash.
+            var positionals = Array(args.dropFirst())
+            if positionals.first == "--" { positionals.removeFirst() }
+            guard let directory = positionals.first else {
+                throw .missingValue("export")
+            }
+            guard positionals.count == 1 else {
+                throw .extraArgument(positionals[1])
+            }
+            return .export(directory: directory)
         default:
             break
         }
