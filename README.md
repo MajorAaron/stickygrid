@@ -34,7 +34,8 @@ fills your screen.
   The Notes menu lists every note so none get lost.
 - Per-note text ink: six marker colors plus an auto ink tuned to each background
 - Capture from anywhere: a global ⌃⌥N Quick Capture palette, a `stickygrid://`
-  URL scheme, a Services menu entry, and ⇧⌘N for the clipboard (see below)
+  URL scheme, a `sticky` command-line tool, a Services menu entry, and ⇧⌘N
+  for the clipboard (see below)
 - AI Assist: summarize a note, turn it into a checklist, or polish the writing
   (see below)
 - Find in Notes (⌘F) — a Spotlight-style palette that live-searches every
@@ -93,6 +94,25 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   `text` (alias `body`) is the percent-encoded note body, `title` becomes the
   first line (auto-styled as the header), and `color` is one of the eight
   palette names. A bare `stickygrid://new` opens an empty note.
+- **Shell / scripts — the `sticky` command** — a tiny CLI that builds the
+  capture URL for you (percent-encoding included) and opens it, so notes
+  are one pipe away from any terminal, Raycast/Alfred script, cron job, or
+  Shortcuts "Run Shell Script" action:
+
+  ```bash
+  sticky Buy milk
+  git log --oneline -5 | sticky --title "Release notes" --color blue
+  sticky --print "hi"        # print the stickygrid:// URL instead of opening
+  ```
+
+  Words join into the body; with no words the body is read from piped
+  stdin; `--title`/`-t` sets the first line and `--color`/`-c` one of the
+  eight palette names. Build and install it with:
+
+  ```bash
+  swift build -c release --product sticky
+  cp .build/release/sticky /usr/local/bin/
+  ```
 - **Services menu** — select text in any app, then
   *(app menu) → Services → New Sticky Note from Selection*.
 - **Clipboard** — ⇧⌘N (File → New Note from Clipboard) pastes whatever is on
