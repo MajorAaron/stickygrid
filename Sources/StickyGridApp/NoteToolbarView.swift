@@ -156,6 +156,7 @@ struct NoteToolbarView: View {
                 Button(action.title) { viewModel.onAIAction(action) }
             }
             Button("Suggest Color") { viewModel.onSuggestColor() }
+            Button("Suggest Title") { viewModel.onSuggestTitle() }
             Divider()
             Button("Ask AI…") { viewModel.onAskAI() }
         } label: {
