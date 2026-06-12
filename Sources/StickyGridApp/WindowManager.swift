@@ -41,20 +41,24 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         openWindow(for: record, focus: true)
     }
 
-    /// Creates a note from outside the app (URL scheme, Services, clipboard).
-    func createNote(from request: CaptureRequest) {
+    /// Creates a note from outside the app (URL scheme, Services, clipboard,
+    /// Quick Capture). With `activate: false` the note appears without
+    /// pulling focus from whatever app the user is in.
+    func createNote(from request: CaptureRequest, activate: Bool = true) {
         var record = NoteRecord(frame: cascadeFrame())
         if let color = request.color { record.colorID = color }
         record.titleSnippet = request.titleSnippet
         store.upsert(record)
-        openWindow(for: record, focus: true,
+        openWindow(for: record, focus: activate,
                    initialText: request.text.isEmpty ? nil : request.text)
         if !request.text.isEmpty {
             // The text arrived pre-typed; mark it dirty so the RTF persists
             // even if the user never edits the note.
             store.markTextChanged(record.id, snippet: request.titleSnippet)
         }
-        NSApp.activate(ignoringOtherApps: true)
+        if activate {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 
     @objc func newNoteFromClipboard(_ sender: Any?) {
@@ -316,6 +320,23 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
                 record.frame = rect
                 store.upsert(record)
             }
+        }
+    }
+
+    // MARK: Quick Capture
+
+    private let quickCapturePalette = QuickCaptureController()
+
+    /// Summoned by the global hotkey (⌃⌥N) or File → Quick Capture. The
+    /// palette floats over whatever app is active; the captured note is
+    /// created without stealing focus from that app.
+    @objc func quickCapture(_ sender: Any?) {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(mouse) }
+            ?? NSScreen.main
+        guard let screen else { return }
+        quickCapturePalette.show(on: screen) { [weak self] request in
+            self?.createNote(from: request, activate: false)
         }
     }
 

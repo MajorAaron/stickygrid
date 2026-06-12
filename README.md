@@ -25,8 +25,8 @@ fills your screen.
 - Closing a note deletes it (with a confirmation if it has text), like real Stickies.
   The Notes menu lists every note so none get lost.
 - Per-note text ink: six marker colors plus an auto ink tuned to each background
-- Capture from anywhere: a `stickygrid://` URL scheme, a Services menu entry,
-  and ⇧⌘N for the clipboard (see below)
+- Capture from anywhere: a global ⌃⌥N Quick Capture palette, a `stickygrid://`
+  URL scheme, a Services menu entry, and ⇧⌘N for the clipboard (see below)
 - AI Assist: summarize a note, turn it into a checklist, or polish the writing
   (see below)
 - Find in Notes (⌘F) — a Spotlight-style palette that live-searches every
@@ -36,8 +36,23 @@ fills your screen.
 
 ## Capture notes from other apps
 
-Three ways to get text into a sticky without switching to StickyGrid first:
+Four ways to get text into a sticky without switching to StickyGrid first:
 
+- **Quick Capture (⌃⌥N from anywhere)** — a system-wide hotkey that works in
+  any app, no Accessibility or Input Monitoring permission needed. A small
+  floating palette appears over whatever you're doing: type the note, click a
+  color dot (your last choice is remembered), and press ⌘↩. The sticky is
+  created *without* switching apps — you stay right where you are. Esc
+  cancels; clicking away keeps the draft for the next summon. Remap the
+  shortcut with
+
+  ```bash
+  defaults write com.aaronmajor.stickygrid QuickCaptureHotKey "cmd+shift+space"
+  ```
+
+  (modifiers `cmd`/`ctrl`/`alt`/`shift` joined with `+`, then a letter,
+  digit, or `space`; the value `off` disables it). Also in the menu as
+  File → Quick Capture.
 - **URL scheme** — from Shortcuts, Raycast, Alfred, a browser bookmarklet, or
   `open` in a terminal:
 

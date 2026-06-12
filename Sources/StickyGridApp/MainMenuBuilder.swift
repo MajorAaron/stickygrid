@@ -26,6 +26,11 @@ enum MainMenuBuilder {
             #selector(WindowManager.newNoteFromClipboard(_:)), "n", windowManager)
         fromClipboard.keyEquivalentModifierMask = [.command, .shift]
         fileMenu.addItem(fromClipboard)
+        // No key equivalent: the global ⌃⌥N hotkey already fires in-app, and
+        // a menu equivalent on the same combo would double-trigger it.
+        fileMenu.addItem(targeted("Quick Capture (⌃⌥N anywhere)",
+                                  #selector(WindowManager.quickCapture(_:)),
+                                  "", windowManager))
         fileMenu.addItem(.separator())
         fileMenu.addItem(targeted("Delete Note", #selector(WindowManager.deleteFrontNote(_:)),
                                   "w", windowManager))

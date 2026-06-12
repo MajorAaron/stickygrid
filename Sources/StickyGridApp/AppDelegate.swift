@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: NoteStore!
     private var windowManager: WindowManager!
     private var servicesProvider: ServicesProvider?
+    private var quickCaptureHotKey: GlobalHotKey?
     /// stickygrid:// URLs can arrive before didFinishLaunching; replayed after.
     private var pendingCaptureURLs: [URL] = []
 
@@ -21,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         servicesProvider = ServicesProvider(windowManager: windowManager)
         NSApp.servicesProvider = servicesProvider
+
+        registerQuickCaptureHotKey()
 
         windowManager.restoreAll()
         NSApp.activate(ignoringOtherApps: true)
@@ -45,6 +48,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 continue
             }
             windowManager.createNote(from: request)
+        }
+    }
+
+    /// System-wide Quick Capture shortcut, ⌃⌥N unless remapped via
+    /// `defaults write … QuickCaptureHotKey "cmd+shift+space"` (or disabled
+    /// with the value "off").
+    private func registerQuickCaptureHotKey() {
+        let raw = UserDefaults.standard.string(forKey: "QuickCaptureHotKey")
+        if raw?.lowercased() == "off" { return }
+        let spec = raw.flatMap { HotKeySpec.parse($0) } ?? .default
+        if raw != nil, HotKeySpec.parse(raw!) == nil {
+            NSLog("StickyGrid: invalid QuickCaptureHotKey '\(raw!)', using ctrl+alt+n")
+        }
+        quickCaptureHotKey = GlobalHotKey(spec: spec) { [weak self] in
+            self?.windowManager.quickCapture(nil)
         }
     }
 
