@@ -197,6 +197,12 @@ focused note through one of three transforms:
 The first line stays the note's title, the result replaces the body in the
 note's current font and ink, and the swap is undoable with ⌘Z.
 
+**Ask Your Notes…** (⌥⇧⌘A) goes the other way: instead of rewriting one
+note, the AI reads *all* of them and answers a question — "what's due this
+week?", "where did I put the wifi password?". The answer arrives as a new
+sticky note with the question as its title and a **Sources** section of
+`stickygrid://open` links; click one to jump to the note it came from.
+
 Transforms call the Anthropic API directly (model `claude-opus-4-8` by
 default; override with `defaults write` key `AIModel`). The API key is read
 from the `ANTHROPIC_API_KEY` environment variable, or from

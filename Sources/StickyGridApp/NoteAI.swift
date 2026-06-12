@@ -181,6 +181,14 @@ enum NoteAI {
         return color
     }
 
+    /// Answers a question from the whole-grid corpus (Ask Your Notes);
+    /// the caller turns the markdown reply into a new note.
+    static func answer(question: String, context: String) async throws -> String {
+        try await complete(
+            system: NoteQA.systemPrompt,
+            user: NoteQA.userMessage(question: question, context: context))
+    }
+
     /// Proposes a short title for the note; the caller inserts it as a new
     /// first line. Replies are normalized by `sanitizedTitle`.
     static func suggestTitle(for text: String) async throws -> String {
