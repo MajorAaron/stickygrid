@@ -37,8 +37,10 @@ fills your screen.
   URL scheme, a `sticky` command-line tool, a Services menu entry, and ⇧⌘N
   for the clipboard (see below)
 - Deep links to notes: `stickygrid://open?note=<id or title>` raises a
-  specific sticky from any app; `sticky open --print` mints the link
-  (see below)
+  specific sticky from any app; File → Copy Link to Note (⌥⇧⌘C) or
+  `sticky open --print` mints the link. URLs inside note text are
+  clickable — paste one note's link into another and click to jump
+  between them; web links open in the browser (see below)
 - AI Assist: summarize a note, turn it into a checklist, or polish the writing
   (see below)
 - Find in Notes (⌘F) — a Spotlight-style palette that live-searches every
@@ -65,6 +67,12 @@ round-trip: the title becomes an `# H1`, bold/italic/strike/code become
   straight to Mail, Messages, Apple Notes, or any app that accepts text.
 - **Copy as Markdown (⌥⌘C)** — puts the markdown on the clipboard, ready to
   paste into Slack, GitHub, Obsidian, or a commit message.
+- **Copy Link to Note (⌥⇧⌘C)** — puts the note's
+  `stickygrid://open?note=<id>` deep link on the clipboard. Paste it into
+  another sticky to make a clickable note-to-note link, or into anything
+  that speaks URLs (an Obsidian page, a calendar event, a script) to raise
+  this exact note later. Inside notes, `stickygrid://` links open the
+  target sticky in place and `http(s)://` links open the browser.
 - **Export Note as Markdown… (⇧⌘E)** — writes a `.md` file named after the
   note's title.
 - **Export All Notes… (⌥⇧⌘E)** — pick a folder and every note becomes one
