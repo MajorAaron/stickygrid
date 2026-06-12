@@ -88,6 +88,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onAppearanceChanged = { [weak self] in self?.appearanceChanged(id) }
         viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
         viewModel.onAIAction = { [weak self] action in self?.runAI(action, on: id) }
+        viewModel.onAskAI = { [weak self] in self?.promptAskAI(on: id) }
         viewModel.onShare = { [weak self] in self?.shareNote(id) }
         viewModel.onImportFiles = { [weak self] urls in
             guard let self else { return }
@@ -335,6 +336,47 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     @objc func aiSummarizeNote(_ sender: Any?) { runAIOnFrontNote(.summarize) }
     @objc func aiChecklistNote(_ sender: Any?) { runAIOnFrontNote(.checklist) }
     @objc func aiPolishNote(_ sender: Any?) { runAIOnFrontNote(.polish) }
+
+    @objc func aiAskNote(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        promptAskAI(on: id)
+    }
+
+    private static let lastAskInstructionKey = "AILastAskInstruction"
+
+    /// Asks for a free-form instruction, then runs it on the note like a preset.
+    private func promptAskAI(on id: UUID) {
+        guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Ask AI"
+        alert.informativeText =
+            "Tell the AI what to do with this note — e.g. “translate to "
+            + "Spanish” or “expand each bullet into a sentence”. The note's "
+            + "text is replaced with the result."
+        alert.addButton(withTitle: "Run")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+        field.placeholderString = "What should the AI do with this note?"
+        field.stringValue = UserDefaults.standard
+            .string(forKey: Self.lastAskInstructionKey) ?? ""
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        let run = { [weak self] (response: NSApplication.ModalResponse) in
+            guard response == .alertFirstButtonReturn else { return }
+            let instruction = field.stringValue
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !instruction.isEmpty else { return }
+            UserDefaults.standard.set(instruction, forKey: Self.lastAskInstructionKey)
+            self?.runAI(.ask(instruction), on: id)
+        }
+        if let panel = panels[id] {
+            alert.beginSheetModal(for: panel, completionHandler: run)
+        } else {
+            run(alert.runModal())
+        }
+    }
 
     private func runAIOnFrontNote(_ action: NoteAIAction) {
         guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }

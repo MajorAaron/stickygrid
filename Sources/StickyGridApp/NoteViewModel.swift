@@ -25,6 +25,7 @@ final class NoteViewModel: Identifiable {
     @ObservationIgnored var onAppearanceChanged: () -> Void = {}
     @ObservationIgnored var onTextChanged: () -> Void = {}
     @ObservationIgnored var onAIAction: (NoteAIAction) -> Void = { _ in }
+    @ObservationIgnored var onAskAI: () -> Void = {}
     @ObservationIgnored var onShare: () -> Void = {}
     @ObservationIgnored var onImportFiles: ([URL]) -> Void = { _ in }
 

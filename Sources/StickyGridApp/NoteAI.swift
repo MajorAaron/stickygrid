@@ -1,18 +1,31 @@
 import Foundation
 
 /// One of the AI transforms a note's text can be run through.
-enum NoteAIAction: String, CaseIterable, Identifiable {
+enum NoteAIAction: Identifiable, Equatable {
     case summarize
     case checklist
     case polish
+    /// A free-form instruction written by the user (Ask AI…).
+    case ask(String)
 
-    var id: String { rawValue }
+    /// The fixed transforms shown in menus; `ask` is reached via its prompt UI.
+    static let presets: [NoteAIAction] = [.summarize, .checklist, .polish]
+
+    var id: String {
+        switch self {
+        case .summarize: "summarize"
+        case .checklist: "checklist"
+        case .polish: "polish"
+        case .ask: "ask"
+        }
+    }
 
     var title: String {
         switch self {
         case .summarize: "Summarize"
         case .checklist: "Turn Into Checklist"
         case .polish: "Polish Writing"
+        case .ask: "Ask AI"
         }
     }
 
@@ -43,6 +56,16 @@ enum NoteAIAction: String, CaseIterable, Identifiable {
                 Fix spelling, grammar, and awkward phrasing while preserving the \
                 meaning, tone, line breaks, and overall structure. Keep the first \
                 line as the title.
+                """
+        case .ask(let instruction):
+            return shared + """
+
+                Apply this instruction from the note's owner to the note text:
+
+                \(instruction)
+
+                If the instruction conflicts with the output format above, the \
+                output format wins: always return only the rewritten note text.
                 """
         }
     }
