@@ -117,6 +117,9 @@ enum MainMenuBuilder {
         aiMenu.addItem(targeted(
             "Auto-Color Captured Notes",
             #selector(WindowManager.toggleAutoColorCapture(_:)), "", windowManager))
+        aiMenu.addItem(targeted(
+            "Auto-Title Captured Notes",
+            #selector(WindowManager.toggleAutoTitleCapture(_:)), "", windowManager))
         aiMenu.addItem(.separator())
         aiMenu.addItem(targeted("Set Anthropic API Key…",
                                 #selector(WindowManager.setAnthropicAPIKey(_:)), "", windowManager))

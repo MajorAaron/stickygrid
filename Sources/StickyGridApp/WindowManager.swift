@@ -61,10 +61,21 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         if activate {
             NSApp.activate(ignoringOtherApps: true)
         }
-        if Self.shouldAutoColor(request: request,
-                                enabled: Self.autoColorCaptureEnabled,
-                                hasAPIKey: NoteAI.apiKey() != nil) {
-            suggestColor(on: record.id, quietly: true)
+        // Title first so the color model reads the final text; sequential
+        // because both actions guard on aiBusy — concurrent, the second
+        // would silently bail.
+        let autoTitle = Self.shouldAutoTitle(request: request,
+                                             enabled: Self.autoTitleCaptureEnabled,
+                                             hasAPIKey: NoteAI.apiKey() != nil)
+        let autoColor = Self.shouldAutoColor(request: request,
+                                             enabled: Self.autoColorCaptureEnabled,
+                                             hasAPIKey: NoteAI.apiKey() != nil)
+        if autoTitle || autoColor {
+            let id = record.id
+            Task { @MainActor [weak self] in
+                if autoTitle { await self?.performSuggestTitle(on: id, quietly: true) }
+                if autoColor { await self?.performSuggestColor(on: id, quietly: true) }
+            }
         }
     }
 
@@ -361,25 +372,35 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
 
     /// Like suggestColor, but the result is inserted as a new first line —
     /// the old text shifts down intact, and one undo reverts it.
-    private func suggestTitle(on id: UUID) {
+    private func suggestTitle(on id: UUID, quietly: Bool = false) {
+        Task { @MainActor [weak self] in
+            await self?.performSuggestTitle(on: id, quietly: quietly)
+        }
+    }
+
+    /// The quiet path (auto-title on capture) never beeps, prompts, or
+    /// alerts — its preconditions were checked by `shouldAutoTitle`, and a
+    /// failed capture titling just leaves the note as it is.
+    private func performSuggestTitle(on id: UUID, quietly: Bool) async {
         guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
         let text = viewModel.textController.plainText()
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { NSSound.beep(); return }
+        guard !text.isEmpty else {
+            if !quietly { NSSound.beep() }
+            return
+        }
         guard NoteAI.apiKey() != nil else {
-            promptForAPIKey()
+            if !quietly { promptForAPIKey() }
             return
         }
 
         viewModel.aiBusy = true
-        Task { @MainActor [weak self] in
-            defer { viewModel.aiBusy = false }
-            do {
-                let title = try await NoteAI.suggestTitle(for: text)
-                viewModel.textController.insertTitleLine(title)
-            } catch {
-                self?.presentAIError(error, on: id)
-            }
+        defer { viewModel.aiBusy = false }
+        do {
+            let title = try await NoteAI.suggestTitle(for: text)
+            viewModel.textController.insertTitleLine(title)
+        } catch {
+            if !quietly { presentAIError(error, on: id) }
         }
     }
 
@@ -442,10 +463,16 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     }
 
     /// Like runAI, but the result is a palette color instead of new text.
+    private func suggestColor(on id: UUID, quietly: Bool = false) {
+        Task { @MainActor [weak self] in
+            await self?.performSuggestColor(on: id, quietly: quietly)
+        }
+    }
+
     /// The quiet path (auto-color on capture) never beeps, prompts, or
     /// alerts — its preconditions were checked by `shouldAutoColor`, and a
     /// failed capture coloring just leaves the note as it is.
-    private func suggestColor(on id: UUID, quietly: Bool = false) {
+    private func performSuggestColor(on id: UUID, quietly: Bool) async {
         guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
         let text = viewModel.textController.plainText()
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -459,14 +486,12 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         }
 
         viewModel.aiBusy = true
-        Task { @MainActor [weak self] in
-            defer { viewModel.aiBusy = false }
-            do {
-                viewModel.colorID = try await NoteAI.suggestColor(for: text)
-                self?.appearanceChanged(id)
-            } catch {
-                if !quietly { self?.presentAIError(error, on: id) }
-            }
+        defer { viewModel.aiBusy = false }
+        do {
+            viewModel.colorID = try await NoteAI.suggestColor(for: text)
+            appearanceChanged(id)
+        } catch {
+            if !quietly { presentAIError(error, on: id) }
         }
     }
 
