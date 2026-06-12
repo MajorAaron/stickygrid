@@ -106,6 +106,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onAskAI = { [weak self] in self?.promptAskAI(on: id) }
         viewModel.onSuggestColor = { [weak self] in self?.suggestColor(on: id) }
         viewModel.onSuggestTitle = { [weak self] in self?.suggestTitle(on: id) }
+        viewModel.onFindRelated = { [weak self] in self?.findRelatedNotes(on: id) }
         viewModel.onShare = { [weak self] in self?.shareNote(id) }
         viewModel.onImportFiles = { [weak self] urls in
             guard let self else { return }
@@ -473,6 +474,73 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
     @objc func aiSuggestTitleNote(_ sender: Any?) {
         guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
         suggestTitle(on: id)
+    }
+
+    @objc func aiFindRelatedNotes(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        findRelatedNotes(on: id)
+    }
+
+    // MARK: Find Related Notes
+
+    /// The corpus the model compares against: every note except the current
+    /// one, empty notes skipped — the Ask Your Notes corpus minus the note
+    /// being read.
+    nonisolated static func relatedSources(
+        records: [NoteRecord], excluding id: UUID, body: (UUID) -> String?
+    ) -> [NoteQA.Source] {
+        NoteQA.sources(for: records.filter { $0.id != id }, body: body)
+    }
+
+    private func findRelatedNotes(on id: UUID) {
+        Task { @MainActor [weak self] in
+            await self?.performFindRelated(on: id)
+        }
+    }
+
+    /// Reads the rest of the grid and appends a Related section of deep
+    /// links to the note. Mirrors performSuggestTitle's guards; the reply
+    /// is parsed and validated by NoteRelated.ids, so invented links die
+    /// here. An explicit "nothing found" alert beats silence, which would
+    /// read as a hang.
+    private func performFindRelated(on id: UUID) async {
+        guard let viewModel = viewModels[id], !viewModel.aiBusy else { return }
+        guard let body = noteMarkdown(id) else { NSSound.beep(); return }
+        guard NoteAI.apiKey() != nil else {
+            promptForAPIKey()
+            return
+        }
+        let sources = Self.relatedSources(
+            records: Array(store.records.values), excluding: id
+        ) { self.noteMarkdown($0) }
+        guard !sources.isEmpty else { NSSound.beep(); return }
+
+        let snippet = store.records[id]?.titleSnippet ?? ""
+        viewModel.aiBusy = true
+        defer { viewModel.aiBusy = false }
+        do {
+            let reply = try await NoteAI.relatedNotes(
+                title: snippet.isEmpty ? "Untitled" : snippet,
+                body: body,
+                context: NoteQA.context(for: sources))
+            let ids = NoteRelated.ids(fromReply: reply, valid: Set(sources.map(\.id)))
+            let related = ids.compactMap { id in sources.first { $0.id == id } }
+            if let markdown = NoteRelated.relatedMarkdown(for: related) {
+                viewModel.textController.appendMarkdown(markdown)
+            } else {
+                let alert = NSAlert()
+                alert.messageText = "No related notes found"
+                alert.informativeText =
+                    "The AI didn't find another note related to this one."
+                if let panel = panels[id] {
+                    alert.beginSheetModal(for: panel, completionHandler: nil)
+                } else {
+                    alert.runModal()
+                }
+            }
+        } catch {
+            presentAIError(error, on: id)
+        }
     }
 
     /// Like suggestColor, but the result is inserted as a new first line —

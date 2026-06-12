@@ -28,6 +28,7 @@ final class NoteViewModel: Identifiable {
     @ObservationIgnored var onAskAI: () -> Void = {}
     @ObservationIgnored var onSuggestColor: () -> Void = {}
     @ObservationIgnored var onSuggestTitle: () -> Void = {}
+    @ObservationIgnored var onFindRelated: () -> Void = {}
     @ObservationIgnored var onShare: () -> Void = {}
     @ObservationIgnored var onImportFiles: ([URL]) -> Void = { _ in }
     /// Fires with the open query when a stickygrid://open link is clicked.
