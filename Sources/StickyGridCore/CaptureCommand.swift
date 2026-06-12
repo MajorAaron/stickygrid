@@ -13,7 +13,7 @@ public enum CaptureCommand: Equatable, Sendable {
     case help
     case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool)
     case list
-    case cat(query: String)
+    case cat(query: String, markdown: Bool)
 
     public enum ParseError: Error, Equatable {
         case unknownOption(String)
@@ -26,9 +26,22 @@ public enum CaptureCommand: Equatable, Sendable {
         case "list":
             return .list
         case "cat":
-            let query = args.dropFirst().joined(separator: " ")
-            guard !query.isEmpty else { throw .missingValue("cat") }
-            return .cat(query: query)
+            // Only -m/--markdown is an option here; other dashed words stay
+            // query text since titles may contain dashes. `--` escapes -m.
+            var markdown = false
+            var scanningFlags = true
+            var queryWords: [String] = []
+            for arg in args.dropFirst() {
+                if scanningFlags, arg == "--" {
+                    scanningFlags = false
+                } else if scanningFlags, arg == "-m" || arg == "--markdown" {
+                    markdown = true
+                } else {
+                    queryWords.append(arg)
+                }
+            }
+            guard !queryWords.isEmpty else { throw .missingValue("cat") }
+            return .cat(query: queryWords.joined(separator: " "), markdown: markdown)
         default:
             break
         }

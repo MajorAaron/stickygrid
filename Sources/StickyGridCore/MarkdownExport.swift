@@ -25,6 +25,73 @@ public enum MarkdownExport {
         }
     }
 
+    /// The style flags of one attribute stretch, as judged by a caller's
+    /// classifier — font-trait inspection is AppKit knowledge, so it stays
+    /// out of Core and comes in through the closure.
+    public struct Style: Equatable, Sendable {
+        public var bold: Bool
+        public var italic: Bool
+        public var strikethrough: Bool
+        public var code: Bool
+
+        public init(bold: Bool = false, italic: Bool = false,
+                    strikethrough: Bool = false, code: Bool = false) {
+            self.bold = bold
+            self.italic = italic
+            self.strikethrough = strikethrough
+            self.code = code
+        }
+    }
+
+    /// Flattens an attributed string into per-paragraph styled runs. The
+    /// first paragraph's bold is the auto-header style, not user emphasis,
+    /// so it is dropped — that line exports as an H1 heading instead.
+    public static func runs(
+        of text: NSAttributedString,
+        classify: ([NSAttributedString.Key: Any]) -> Style
+    ) -> [[Run]] {
+        guard text.length > 0 else { return [] }
+        let string = text.string as NSString
+        var paragraphs: [[Run]] = []
+        var location = 0
+        while location < string.length {
+            var start = 0, end = 0, contentsEnd = 0
+            string.getParagraphStart(&start, end: &end, contentsEnd: &contentsEnd,
+                                     for: NSRange(location: location, length: 0))
+            let content = NSRange(location: start, length: contentsEnd - start)
+            paragraphs.append(runs(in: content, of: text, classify: classify,
+                                   dropBold: paragraphs.isEmpty))
+            location = end
+        }
+        return paragraphs
+    }
+
+    /// The whole attributed string as markdown.
+    public static func markdown(
+        of text: NSAttributedString,
+        classify: ([NSAttributedString.Key: Any]) -> Style
+    ) -> String {
+        markdown(paragraphs: runs(of: text, classify: classify))
+    }
+
+    private static func runs(
+        in range: NSRange, of text: NSAttributedString,
+        classify: ([NSAttributedString.Key: Any]) -> Style, dropBold: Bool
+    ) -> [Run] {
+        guard range.length > 0 else { return [] }
+        var out: [Run] = []
+        text.enumerateAttributes(in: range) { attrs, subrange, _ in
+            let style = classify(attrs)
+            out.append(Run(
+                text: (text.string as NSString).substring(with: subrange),
+                bold: !dropBold && style.bold,
+                italic: style.italic,
+                strikethrough: style.strikethrough,
+                code: style.code))
+        }
+        return out
+    }
+
     /// `paragraphs[i]` is paragraph i's runs, line-marker literals included.
     /// The first paragraph is the note's title and exports as an H1 heading
     /// unless it is a list line or empty.
