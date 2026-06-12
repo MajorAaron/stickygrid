@@ -51,6 +51,17 @@ public enum NoteListing {
         }
     }
 
+    /// The note a query should act on when there's no shell to report
+    /// ambiguity to (the `stickygrid://open` deep link): a unique hit wins,
+    /// several hits resolve in list order — pinned first, then frontmost.
+    public static func bestMatch(_ query: String, in records: [NoteRecord]) -> NoteRecord? {
+        switch match(query, in: records) {
+        case .none: return nil
+        case .one(let record): return record
+        case .many(let hits): return sorted(hits).first
+        }
+    }
+
     /// `$STICKYGRID_DIR` wins; otherwise the app's own store location.
     public static func storeDirectory(
         environment: [String: String], home: URL

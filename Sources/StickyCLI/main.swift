@@ -11,13 +11,16 @@ usage: sticky [options] [--] [words...]
        <command> | sticky [options]
        sticky list
        sticky cat [-m] <id-prefix or title words>
+       sticky open [--print] <id-prefix or title words>
        sticky export <dir>
 
 Creates a StickyGrid note. Words join into the note body; with no words,
 the body is read from piped stdin. `list`, `cat`, and `export` read your
 existing notes (read-only); use `sticky -- list` to capture the word "list".
-`export` writes every note as a markdown file into <dir> (created if
-missing) — handy for backups, grep, or an Obsidian vault.
+`open` raises the matching note's window; with --print it prints a durable
+stickygrid://open link to embed in other apps instead. `export` writes
+every note as a markdown file into <dir> (created if missing) — handy for
+backups, grep, or an Obsidian vault.
 
 options:
   -t, --title <text>   first line of the note
@@ -32,6 +35,7 @@ examples:
   git log --oneline -5 | sticky -t "Release notes" -c blue
   sticky cat -m release | pbcopy
   sticky cat -m release | sticky -m -t "Release (copy)"
+  sticky open release
   sticky export ~/Documents/sticky-backup
 """
 
@@ -92,6 +96,24 @@ func markdownText(of text: NSAttributedString) -> String {
     }
 }
 
+// /usr/bin/open routes through LaunchServices, exactly like every other
+// capture path — the GUI app must be built and registered for the scheme.
+func launch(_ url: URL) {
+    let open = Process()
+    open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+    open.arguments = [url.absoluteString]
+    do {
+        try open.run()
+    } catch {
+        fail("sticky: could not run /usr/bin/open: \(error.localizedDescription)", code: 1)
+    }
+    open.waitUntilExit()
+    if open.terminationStatus != 0 {
+        fail("sticky: open failed — is StickyGrid.app built and registered for stickygrid:// ?",
+             code: open.terminationStatus)
+    }
+}
+
 switch command {
 case .help:
     print(usage)
@@ -112,6 +134,24 @@ case .cat(let query, let markdown):
     case .one(let record):
         if let text = loadText(id: record.id) {
             print(markdown ? markdownText(of: text) : text.string)
+        }
+        exit(0)
+    }
+case .open(let query, let printOnly):
+    let records = loadRecords()
+    switch NoteListing.match(query, in: records) {
+    case .none:
+        fail("sticky: no note matching \"\(query)\"", code: 1)
+    case .many(let hits):
+        let lines = NoteListing.lines(for: hits).joined(separator: "\n")
+        fail("sticky: \"\(query)\" matches several notes:\n" + lines, code: 1)
+    case .one(let record):
+        // The full UUID keeps the link unambiguous even as notes are added.
+        let url = OpenRequest.openURL(query: record.id.uuidString.lowercased())
+        if printOnly {
+            print(url.absoluteString)
+        } else {
+            launch(url)
         }
         exit(0)
     }
@@ -172,18 +212,4 @@ if printOnly {
     exit(0)
 }
 
-// /usr/bin/open routes through LaunchServices, exactly like every other
-// capture path — the GUI app must be built and registered for the scheme.
-let open = Process()
-open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-open.arguments = [url.absoluteString]
-do {
-    try open.run()
-} catch {
-    fail("sticky: could not run /usr/bin/open: \(error.localizedDescription)", code: 1)
-}
-open.waitUntilExit()
-if open.terminationStatus != 0 {
-    fail("sticky: open failed — is StickyGrid.app built and registered for stickygrid:// ?",
-         code: open.terminationStatus)
-}
+launch(url)
