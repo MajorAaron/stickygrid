@@ -85,6 +85,7 @@ final class RichTextController {
         }
         storage.setAttributedString(attributed)
         tv.restyleHeader()  // setAttributedString skips didChangeText; also upgrades pre-header notes
+        tv.restyleLinks()
     }
 
     func plainText() -> String {

@@ -112,6 +112,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             let imported = urls.filter { self.importNote(from: $0) }
             if imported.isEmpty { NSSound.beep() }
         }
+        viewModel.onOpenNoteLink = { [weak self] query in self?.focusNote(query: query) }
 
         let panel = NotePanel(frame: record.frame)
         let container = NoteContainerView(color: record.colorID)
@@ -226,6 +227,17 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(markdown, forType: .string)
+    }
+
+    /// File → Copy Link to Note: the front note's stickygrid://open URL,
+    /// linked by full UUID so it survives retitling. Pasted into another
+    /// note it becomes clickable via restyleLinks.
+    @objc func copyFrontNoteLink(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        let url = OpenRequest.openURL(query: id.uuidString.lowercased())
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(url.absoluteString, forType: .string)
     }
 
     @objc func exportFrontNoteAsMarkdown(_ sender: Any?) {

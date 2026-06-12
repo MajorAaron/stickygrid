@@ -70,5 +70,16 @@ struct RichTextEditor: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             viewModel.onTextChanged()
         }
+
+        /// stickygrid://open links raise their note in-process — no
+        /// LaunchServices round-trip, so dev builds work too. Everything
+        /// else returns false and gets NSTextView's default browser open.
+        func textView(_ textView: NSTextView, clickedOnLink link: Any,
+                      at charIndex: Int) -> Bool {
+            let url = (link as? URL) ?? (link as? String).flatMap(URL.init(string:))
+            guard let url, let open = OpenRequest.from(url: url) else { return false }
+            viewModel.onOpenNoteLink(open.query)
+            return true
+        }
     }
 }

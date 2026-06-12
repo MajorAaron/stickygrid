@@ -30,6 +30,8 @@ final class NoteViewModel: Identifiable {
     @ObservationIgnored var onSuggestTitle: () -> Void = {}
     @ObservationIgnored var onShare: () -> Void = {}
     @ObservationIgnored var onImportFiles: ([URL]) -> Void = { _ in }
+    /// Fires with the open query when a stickygrid://open link is clicked.
+    @ObservationIgnored var onOpenNoteLink: (String) -> Void = { _ in }
 
     init(record: NoteRecord) {
         id = record.id
