@@ -83,8 +83,37 @@ struct CaptureCommandTests {
 
     @Test("first argument cat joins the rest into one query")
     func catSubcommand() throws {
-        #expect(try CaptureCommand.parse(["cat", "groceries"]) == .cat(query: "groceries"))
-        #expect(try CaptureCommand.parse(["cat", "release", "notes"]) == .cat(query: "release notes"))
+        #expect(try CaptureCommand.parse(["cat", "groceries"])
+                == .cat(query: "groceries", markdown: false))
+        #expect(try CaptureCommand.parse(["cat", "release", "notes"])
+                == .cat(query: "release notes", markdown: false))
+    }
+
+    @Test("cat -m / --markdown sets the markdown flag, anywhere in the args")
+    func catMarkdownFlag() throws {
+        #expect(try CaptureCommand.parse(["cat", "-m", "groceries"])
+                == .cat(query: "groceries", markdown: true))
+        #expect(try CaptureCommand.parse(["cat", "release", "--markdown"])
+                == .cat(query: "release", markdown: true))
+    }
+
+    @Test("cat -- stops flag scanning so -m can be a query")
+    func catDoubleDash() throws {
+        #expect(try CaptureCommand.parse(["cat", "--", "-m"])
+                == .cat(query: "-m", markdown: false))
+    }
+
+    @Test("other dashed words stay query text, as before")
+    func catDashedQuery() throws {
+        #expect(try CaptureCommand.parse(["cat", "to-do"])
+                == .cat(query: "to-do", markdown: false))
+    }
+
+    @Test("cat -m with no query is still a usage error")
+    func catMarkdownNeedsQuery() {
+        #expect(throws: CaptureCommand.ParseError.missingValue("cat")) {
+            try CaptureCommand.parse(["cat", "--markdown"])
+        }
     }
 
     @Test("cat with no query is a usage error")
