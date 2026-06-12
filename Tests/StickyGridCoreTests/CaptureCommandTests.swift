@@ -8,39 +8,39 @@ struct CaptureCommandTests {
     @Test("positional words join into the body")
     func positionalsJoin() throws {
         let command = try CaptureCommand.parse(["Buy", "milk"])
-        #expect(command == .new(body: "Buy milk", title: nil, color: nil, printOnly: false))
+        #expect(command == .new(body: "Buy milk", title: nil, color: nil, printOnly: false, markdown: false))
     }
 
     @Test("no arguments means body nil — main fills it from stdin")
     func noArgsMeansStdin() throws {
         let command = try CaptureCommand.parse([])
-        #expect(command == .new(body: nil, title: nil, color: nil, printOnly: false))
+        #expect(command == .new(body: nil, title: nil, color: nil, printOnly: false, markdown: false))
     }
 
     @Test("--title and --color flags, long form")
     func longFlags() throws {
         let command = try CaptureCommand.parse(["--title", "Groceries", "--color", "pink", "milk"])
-        #expect(command == .new(body: "milk", title: "Groceries", color: .pink, printOnly: false))
+        #expect(command == .new(body: "milk", title: "Groceries", color: .pink, printOnly: false, markdown: false))
     }
 
     @Test("-t and -c short forms")
     func shortFlags() throws {
         let command = try CaptureCommand.parse(["-t", "Groceries", "-c", "blue"])
-        #expect(command == .new(body: nil, title: "Groceries", color: .blue, printOnly: false))
+        #expect(command == .new(body: nil, title: "Groceries", color: .blue, printOnly: false, markdown: false))
     }
 
     @Test("color is case-insensitive and grey is an alias for gray")
     func colorAliases() throws {
         #expect(try CaptureCommand.parse(["-c", "Pink"])
-                == .new(body: nil, title: nil, color: .pink, printOnly: false))
+                == .new(body: nil, title: nil, color: .pink, printOnly: false, markdown: false))
         #expect(try CaptureCommand.parse(["-c", "grey"])
-                == .new(body: nil, title: nil, color: .gray, printOnly: false))
+                == .new(body: nil, title: nil, color: .gray, printOnly: false, markdown: false))
     }
 
     @Test("--print is parsed")
     func printFlag() throws {
         let command = try CaptureCommand.parse(["--print", "hi"])
-        #expect(command == .new(body: "hi", title: nil, color: nil, printOnly: true))
+        #expect(command == .new(body: "hi", title: nil, color: nil, printOnly: true, markdown: false))
     }
 
     @Test("-m / --markdown mark the captured body as markdown")
@@ -69,7 +69,7 @@ struct CaptureCommandTests {
     @Test("-- ends option parsing so a body can start with a dash")
     func doubleDash() throws {
         let command = try CaptureCommand.parse(["--", "--not-a-flag", "todo"])
-        #expect(command == .new(body: "--not-a-flag todo", title: nil, color: nil, printOnly: false))
+        #expect(command == .new(body: "--not-a-flag todo", title: nil, color: nil, printOnly: false, markdown: false))
     }
 
     @Test("unknown option is an error")
@@ -143,12 +143,12 @@ struct CaptureCommandTests {
     @Test("-- list is still a captured note body, not a subcommand")
     func dashDashEscapesSubcommand() throws {
         #expect(try CaptureCommand.parse(["--", "list"])
-                == .new(body: "list", title: nil, color: nil, printOnly: false))
+                == .new(body: "list", title: nil, color: nil, printOnly: false, markdown: false))
     }
 
     @Test("subcommands only dispatch from the first argument")
     func subcommandMustBeFirst() throws {
         #expect(try CaptureCommand.parse(["-t", "x", "list"])
-                == .new(body: "list", title: "x", color: nil, printOnly: false))
+                == .new(body: "list", title: "x", color: nil, printOnly: false, markdown: false))
     }
 }

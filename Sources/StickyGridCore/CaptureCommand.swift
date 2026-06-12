@@ -3,7 +3,7 @@ import Foundation
 /// One parsed invocation of the `sticky` command-line tool, which captures
 /// notes from the shell through the `stickygrid://new` URL scheme.
 ///
-/// `sticky [--title v] [--color v] [--print] [--] [words...]`
+/// `sticky [--title v] [--color v] [--markdown] [--print] [--] [words...]`
 /// Positional words join into the body; no positionals leaves the body nil
 /// so the executable can fill it from stdin.
 ///
@@ -11,7 +11,8 @@ import Foundation
 /// subcommands instead (`sticky -- list` escapes back to capture).
 public enum CaptureCommand: Equatable, Sendable {
     case help
-    case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool)
+    case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool,
+             markdown: Bool)
     case list
     case cat(query: String, markdown: Bool)
 
@@ -50,6 +51,7 @@ public enum CaptureCommand: Equatable, Sendable {
         var title: String?
         var color: NoteColor?
         var printOnly = false
+        var markdown = false
         var optionsEnded = false
         var index = args.startIndex
 
@@ -79,6 +81,8 @@ public enum CaptureCommand: Equatable, Sendable {
                 color = parsed
             case "--print":
                 printOnly = true
+            case "-m", "--markdown":
+                markdown = true
             case _ where arg.hasPrefix("-") && arg.count > 1:
                 throw .unknownOption(arg)
             default:
@@ -88,6 +92,7 @@ public enum CaptureCommand: Equatable, Sendable {
         }
 
         return .new(body: words.isEmpty ? nil : words.joined(separator: " "),
-                    title: title, color: color, printOnly: printOnly)
+                    title: title, color: color, printOnly: printOnly,
+                    markdown: markdown)
     }
 }
