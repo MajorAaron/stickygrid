@@ -1,11 +1,12 @@
 import AppKit
+import StickyGridCore
 
 /// TextKit 1 text view with strikethrough and bullet-list actions.
 /// Actions are @objc and nil-target-routable so Format menu items reach the
 /// focused note via the responder chain; the toolbar calls them directly.
 final class StickyTextView: NSTextView {
 
-    static let bulletPrefix = "•\t"
+    static let bulletPrefix = MarkdownTyping.LineMarker.bullet.literal
     private static let bulletIndent: CGFloat = 22
 
     // MARK: Bold / italic
@@ -208,7 +209,7 @@ final class StickyTextView: NSTextView {
         return paragraphHasMarker(at: p.location)
     }
 
-    private func applyListIndent(_ on: Bool, to range: NSRange, storage: NSTextStorage) {
+    func applyListIndent(_ on: Bool, to range: NSRange, storage: NSTextStorage) {
         let style = NSMutableParagraphStyle()
         if let existing = (range.length > 0
             ? storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil)
@@ -224,7 +225,27 @@ final class StickyTextView: NSTextView {
         typingAttributes[.paragraphStyle] = style
     }
 
-    // MARK: Bullet continuation on return
+    // MARK: Markdown typing shortcuts (conversion logic in +Markdown.swift)
+
+    override func insertText(_ insertString: Any, replacementRange: NSRange) {
+        super.insertText(insertString, replacementRange: replacementRange)
+        let typed = (insertString as? String)
+            ?? (insertString as? NSAttributedString)?.string ?? ""
+        // Single keystrokes only: pasted text and programmatic inserts (list
+        // continuation markers) must not trigger conversion.
+        guard typed.count == 1 else { return }
+        convertMarkdownIfNeeded(afterTyping: typed)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if let index = checkboxIndex(at: event), toggleCheckbox(at: index) { return }
+        super.mouseDown(with: event)
+    }
+
+    // MARK: List continuation on return
+    // Bullets repeat, numbered items increment, checkboxes continue
+    // unchecked. Continuation markers are inserted via insertText but are
+    // multi-character, so the markdown conversion hook ignores them.
 
     override func insertNewline(_ sender: Any?) {
         guard let storage = textStorage else { return super.insertNewline(sender) }
@@ -233,16 +254,18 @@ final class StickyTextView: NSTextView {
         guard caret.length == 0, text.length > 0 else { return super.insertNewline(sender) }
 
         let paragraph = text.paragraphRange(for: caret)
-        guard paragraphHasMarker(at: paragraph.location) else {
+        guard let marker = MarkdownTyping.LineMarker.parse(
+            paragraph: text.substring(with: paragraph)) else {
             return super.insertNewline(sender)
         }
 
-        // Empty bullet + return = leave the list (like every notes app).
+        // Empty item + return = leave the list (like every notes app).
         let body = text.substring(with: paragraph)
+            .dropFirst(marker.literal.count)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        if body == "•" {
+        if body.isEmpty {
             let markerRange = NSRange(location: paragraph.location,
-                                      length: Self.bulletPrefix.count)
+                                      length: (marker.literal as NSString).length)
             if shouldChangeText(in: markerRange, replacementString: "") {
                 storage.replaceCharacters(in: markerRange, with: "")
                 didChangeText()
@@ -254,6 +277,6 @@ final class StickyTextView: NSTextView {
         }
 
         super.insertNewline(sender)
-        insertText(Self.bulletPrefix, replacementRange: selectedRange())
+        insertText(marker.continuationLiteral, replacementRange: selectedRange())
     }
 }

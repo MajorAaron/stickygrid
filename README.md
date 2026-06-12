@@ -13,6 +13,9 @@ fills your screen.
 - 8 classic pastel colors, switchable per note from the hover toolbar
 - Rich text: **bold** ⌘B, *italic* ⌘I, underline ⌘U, strikethrough ⇧⌘X,
   bullet lists ⇧⌘L (with automatic continuation on return)
+- Markdown typing shortcuts: `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``
+  convert as you type; `- `, `1. `, and `- [ ] ` start bullet, numbered, and
+  clickable-checkbox lists. Markers vanish; ⌘Z brings them back.
 - The first line of every note is its title — automatically bold and larger,
   so a wall of notes stays scannable
 - Per-note font family and size
