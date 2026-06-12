@@ -11,10 +11,13 @@ usage: sticky [options] [--] [words...]
        <command> | sticky [options]
        sticky list
        sticky cat [-m] <id-prefix or title words>
+       sticky export <dir>
 
 Creates a StickyGrid note. Words join into the note body; with no words,
-the body is read from piped stdin. `list` and `cat` read your existing
-notes (read-only); use `sticky -- list` to capture the word "list".
+the body is read from piped stdin. `list`, `cat`, and `export` read your
+existing notes (read-only); use `sticky -- list` to capture the word "list".
+`export` writes every note as a markdown file into <dir> (created if
+missing) — handy for backups, grep, or an Obsidian vault.
 
 options:
   -t, --title <text>   first line of the note
@@ -29,6 +32,7 @@ examples:
   git log --oneline -5 | sticky -t "Release notes" -c blue
   sticky cat -m release | pbcopy
   sticky cat -m release | sticky -m -t "Release (copy)"
+  sticky export ~/Documents/sticky-backup
 """
 
 func fail(_ message: String, code: Int32) -> Never {
@@ -44,6 +48,7 @@ do {
     case .unknownOption(let flag): "unknown option \(flag)"
     case .missingValue(let flag): "\(flag) needs a value"
     case .unknownColor(let name): "unknown color \"\(name)\""
+    case .extraArgument(let word): "unexpected argument \(word)"
     }
     fail("sticky: \(reason)\n\n" + usage, code: 64)
 }
@@ -59,6 +64,32 @@ func loadRecords() -> [NoteRecord] {
           let document = try? NotesDocument.decode(from: data)
     else { return [] }
     return document.notes
+}
+
+// init?(rtf:) is not registered in headless processes — go through the
+// document-reading initializer instead.
+func loadText(id: UUID) -> NSAttributedString? {
+    let rtfURL = storeDir.appendingPathComponent("\(id.uuidString).rtf")
+    guard let data = try? Data(contentsOf: rtfURL) else { return nil }
+    return try? NSAttributedString(
+        data: data,
+        options: [.documentType: NSAttributedString.DocumentType.rtf],
+        documentAttributes: nil)
+}
+
+// Same classifier as the app's export path: font traits for bold/italic,
+// Menlo prefix marks code spans.
+func markdownText(of text: NSAttributedString) -> String {
+    MarkdownExport.markdown(of: text) { attrs in
+        let font = attrs[.font] as? NSFont
+        let traits = font.map(NSFontManager.shared.traits(of:)) ?? []
+        let strike = attrs[.strikethroughStyle] as? Int ?? 0
+        return MarkdownExport.Style(
+            bold: traits.contains(.boldFontMask),
+            italic: traits.contains(.italicFontMask),
+            strikethrough: strike != 0,
+            code: font?.fontName.hasPrefix("Menlo") ?? false)
+    }
 }
 
 switch command {
@@ -79,33 +110,41 @@ case .cat(let query, let markdown):
         let lines = NoteListing.lines(for: hits).joined(separator: "\n")
         fail("sticky: \"\(query)\" matches several notes:\n" + lines, code: 1)
     case .one(let record):
-        let rtfURL = storeDir.appendingPathComponent("\(record.id.uuidString).rtf")
-        // init?(rtf:) is not registered in headless processes — go through
-        // the document-reading initializer instead.
-        if let data = try? Data(contentsOf: rtfURL),
-           let text = try? NSAttributedString(
-               data: data,
-               options: [.documentType: NSAttributedString.DocumentType.rtf],
-               documentAttributes: nil) {
-            if markdown {
-                // Same classifier as the app's export path: font traits for
-                // bold/italic, Menlo prefix marks code spans.
-                print(MarkdownExport.markdown(of: text) { attrs in
-                    let font = attrs[.font] as? NSFont
-                    let traits = font.map(NSFontManager.shared.traits(of:)) ?? []
-                    let strike = attrs[.strikethroughStyle] as? Int ?? 0
-                    return MarkdownExport.Style(
-                        bold: traits.contains(.boldFontMask),
-                        italic: traits.contains(.italicFontMask),
-                        strikethrough: strike != 0,
-                        code: font?.fontName.hasPrefix("Menlo") ?? false)
-                })
-            } else {
-                print(text.string)
-            }
+        if let text = loadText(id: record.id) {
+            print(markdown ? markdownText(of: text) : text.string)
         }
         exit(0)
     }
+case .export(let directory):
+    let records = loadRecords()
+    if records.isEmpty { print("no notes"); exit(0) }
+    let destination = URL(fileURLWithPath: (directory as NSString).expandingTildeInPath)
+    do {
+        try FileManager.default.createDirectory(
+            at: destination, withIntermediateDirectories: true)
+    } catch {
+        fail("sticky: could not create \(destination.path): \(error.localizedDescription)",
+             code: 1)
+    }
+    var exported = 0
+    for entry in NoteExport.entries(for: records) {
+        guard let text = loadText(id: entry.id) else {
+            FileHandle.standardError.write(
+                Data("sticky: skipping \(entry.filename) — note text unreadable\n".utf8))
+            continue
+        }
+        let fileURL = destination.appendingPathComponent(entry.filename)
+        do {
+            try (markdownText(of: text) + "\n").write(to: fileURL, atomically: true,
+                                                  encoding: .utf8)
+            exported += 1
+        } catch {
+            fail("sticky: could not write \(fileURL.path): \(error.localizedDescription)",
+                 code: 1)
+        }
+    }
+    print("exported \(exported) note\(exported == 1 ? "" : "s") to \(destination.path)")
+    exit(0)
 case .new:
     break
 }

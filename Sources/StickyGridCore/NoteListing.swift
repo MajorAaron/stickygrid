@@ -12,13 +12,15 @@ public enum NoteListing {
     }
 
     /// Pinned first, then frontmost (zOrder 0 is the front window).
+    public static func sorted(_ records: [NoteRecord]) -> [NoteRecord] {
+        records.sorted {
+            if $0.pinned != $1.pinned { return $0.pinned }
+            return $0.zOrder < $1.zOrder
+        }
+    }
+
     public static func lines(for records: [NoteRecord]) -> [String] {
-        records
-            .sorted {
-                if $0.pinned != $1.pinned { return $0.pinned }
-                return $0.zOrder < $1.zOrder
-            }
-            .map(line)
+        sorted(records).map(line)
     }
 
     private static func line(_ record: NoteRecord) -> String {
