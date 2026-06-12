@@ -383,7 +383,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         }
     }
 
-    // MARK: Auto-color on capture
+    // MARK: Auto-color / auto-title on capture
 
     private nonisolated static let autoColorCaptureKey = "AIAutoColorCapture"
 
@@ -408,9 +408,35 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         Self.autoColorCaptureEnabled.toggle()
     }
 
+    private nonisolated static let autoTitleCaptureKey = "AIAutoTitleCapture"
+
+    /// Off by default: auto-title spends API tokens on every capture.
+    nonisolated static var autoTitleCaptureEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: autoTitleCaptureKey) }
+        set { UserDefaults.standard.set(newValue, forKey: autoTitleCaptureKey) }
+    }
+
+    /// Whether a captured note should quietly title itself. Capture must
+    /// never prompt, so a missing key disables it; an explicit title in
+    /// the request means the caller already chose.
+    nonisolated static func shouldAutoTitle(
+        request: CaptureRequest, enabled: Bool, hasAPIKey: Bool
+    ) -> Bool {
+        enabled && hasAPIKey && !request.hasExplicitTitle
+            && !request.text
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    @objc func toggleAutoTitleCapture(_ sender: Any?) {
+        Self.autoTitleCaptureEnabled.toggle()
+    }
+
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         if item.action == #selector(toggleAutoColorCapture(_:)) {
             item.state = Self.autoColorCaptureEnabled ? .on : .off
+        }
+        if item.action == #selector(toggleAutoTitleCapture(_:)) {
+            item.state = Self.autoTitleCaptureEnabled ? .on : .off
         }
         return true
     }
