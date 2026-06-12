@@ -111,6 +111,11 @@ enum MainMenuBuilder {
         askAI.keyEquivalentModifierMask = [.command, .option]
         aiMenu.addItem(askAI)
         aiMenu.addItem(.separator())
+        // Checkmark state comes from WindowManager.validateMenuItem.
+        aiMenu.addItem(targeted(
+            "Auto-Color Captured Notes",
+            #selector(WindowManager.toggleAutoColorCapture(_:)), "", windowManager))
+        aiMenu.addItem(.separator())
         aiMenu.addItem(targeted("Set Anthropic API Key…",
                                 #selector(WindowManager.setAnthropicAPIKey(_:)), "", windowManager))
         main.addItem(submenu(aiMenu, title: "AI"))
