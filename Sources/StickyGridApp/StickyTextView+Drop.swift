@@ -39,6 +39,15 @@ extension StickyTextView {
 
     // MARK: Drop handling
 
+    /// File URLs must be acceptable for the dragging callbacks to fire at
+    /// all — the view never imports attachments (importsGraphics is false),
+    /// so NSTextView would not register for them on its own.
+    override var acceptableDragTypes: [NSPasteboard.PasteboardType] {
+        var types = super.acceptableDragTypes
+        if !types.contains(.fileURL) { types.append(.fileURL) }
+        return types
+    }
+
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         if case .importFiles = Self.dropAction(for: sender.draggingPasteboard) {
             return .copy

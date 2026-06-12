@@ -31,6 +31,9 @@ struct RichTextEditor: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(
             width: 0, height: CGFloat.greatestFiniteMagnitude)
         textView.delegate = context.coordinator
+        textView.onDropMarkdownFiles = { [weak viewModel] in
+            viewModel?.onImportFiles($0)
+        }
 
         let font = NSFont(name: viewModel.fontName, size: viewModel.fontSize)
             ?? NSFont.systemFont(ofSize: viewModel.fontSize)
