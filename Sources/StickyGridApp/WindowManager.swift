@@ -1,6 +1,7 @@
 import AppKit
 import StickyGridCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Owns one NotePanel per note: creation, restoration, deletion, pinning,
 /// frame tracking, and mosaic tiling.
@@ -86,6 +87,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         viewModel.onAppearanceChanged = { [weak self] in self?.appearanceChanged(id) }
         viewModel.onTextChanged = { [weak self] in self?.textChanged(id) }
         viewModel.onAIAction = { [weak self] action in self?.runAI(action, on: id) }
+        viewModel.onShare = { [weak self] in self?.shareNote(id) }
 
         let panel = NotePanel(frame: record.frame)
         let container = NoteContainerView(color: record.colorID)
@@ -186,6 +188,69 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             .split(separator: "\n", omittingEmptySubsequences: true)
             .first.map(String.init) ?? ""
         store.markTextChanged(id, snippet: String(firstLine.prefix(40)))
+    }
+
+    // MARK: Share & export
+
+    @objc func shareFrontNote(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow) else { NSSound.beep(); return }
+        shareNote(id)
+    }
+
+    @objc func copyFrontNoteAsMarkdown(_ sender: Any?) {
+        guard let markdown = frontNoteMarkdown() else { NSSound.beep(); return }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(markdown, forType: .string)
+    }
+
+    @objc func exportFrontNoteAsMarkdown(_ sender: Any?) {
+        guard let id = noteID(of: NSApp.keyWindow),
+              let panel = panels[id],
+              let markdown = noteMarkdown(id) else { NSSound.beep(); return }
+
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+        savePanel.allowsOtherFileTypes = true
+        savePanel.nameFieldStringValue = Self.exportFileName(
+            title: viewModels[id]?.textController.plainText() ?? "")
+        savePanel.beginSheetModal(for: panel) { response in
+            guard response == .OK, let url = savePanel.url else { return }
+            try? markdown.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
+    private func shareNote(_ id: UUID) {
+        guard let panel = panels[id], let contentView = panel.contentView,
+              let markdown = noteMarkdown(id) else { NSSound.beep(); return }
+        panel.makeKeyAndOrderFront(nil)
+        let picker = NSSharingServicePicker(items: [markdown])
+        picker.show(relativeTo: contentView.bounds, of: contentView, preferredEdge: .minY)
+    }
+
+    private func frontNoteMarkdown() -> String? {
+        noteID(of: NSApp.keyWindow).flatMap(noteMarkdown)
+    }
+
+    /// The note's markdown, or nil when the note is empty.
+    private func noteMarkdown(_ id: UUID) -> String? {
+        guard let markdown = viewModels[id]?.textController.markdownText(),
+              !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return nil }
+        return markdown
+    }
+
+    /// `<first line>.md`, sanitized for the filesystem.
+    nonisolated static func exportFileName(title: String) -> String {
+        let firstLine = title
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .first.map(String.init) ?? ""
+        let sanitized = firstLine
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+            .trimmingCharacters(in: .whitespaces)
+            .prefix(60)
+        return (sanitized.isEmpty ? "Note" : String(sanitized)) + ".md"
     }
 
     // MARK: AI Assist
