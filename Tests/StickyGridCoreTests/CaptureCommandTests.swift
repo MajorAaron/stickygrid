@@ -43,6 +43,23 @@ struct CaptureCommandTests {
         #expect(command == .new(body: "hi", title: nil, color: nil, printOnly: true))
     }
 
+    @Test("-m / --markdown mark the captured body as markdown")
+    func markdownFlag() throws {
+        #expect(try CaptureCommand.parse(["-m", "get", "**milk**"])
+                == .new(body: "get **milk**", title: nil, color: nil,
+                        printOnly: false, markdown: true))
+        #expect(try CaptureCommand.parse(["--markdown"])
+                == .new(body: nil, title: nil, color: nil,
+                        printOnly: false, markdown: true))
+    }
+
+    @Test("after -- a -m is a body word, not the markdown flag")
+    func markdownFlagEscaped() throws {
+        #expect(try CaptureCommand.parse(["--", "-m", "todo"])
+                == .new(body: "-m todo", title: nil, color: nil,
+                        printOnly: false, markdown: false))
+    }
+
     @Test("--help wins from anywhere, even after other args")
     func helpWins() throws {
         #expect(try CaptureCommand.parse(["--help"]) == .help)
