@@ -108,3 +108,77 @@ struct InlineMatchTests {
         #expect(match("*italic") == nil)
     }
 }
+
+@Suite("Markdown typing — list triggers")
+struct ListTriggerTests {
+
+    @Test("- and * with a space trigger a bullet")
+    func bullet() {
+        #expect(MarkdownTyping.listTrigger(linePrefix: "- ") == .bullet)
+        #expect(MarkdownTyping.listTrigger(linePrefix: "* ") == .bullet)
+    }
+
+    @Test("N. with a space triggers a numbered item keeping the typed number")
+    func numbered() {
+        #expect(MarkdownTyping.listTrigger(linePrefix: "1. ") == .numbered(1))
+        #expect(MarkdownTyping.listTrigger(linePrefix: "12. ") == .numbered(12))
+    }
+
+    @Test("[ ] and [x] forms trigger checkboxes")
+    func checkbox() {
+        #expect(MarkdownTyping.listTrigger(linePrefix: "[ ] ") == .checkbox(checked: false))
+        #expect(MarkdownTyping.listTrigger(linePrefix: "[] ") == .checkbox(checked: false))
+        #expect(MarkdownTyping.listTrigger(linePrefix: "[x] ") == .checkbox(checked: true))
+        #expect(MarkdownTyping.listTrigger(linePrefix: "[X] ") == .checkbox(checked: true))
+    }
+
+    @Test("anything else does not trigger")
+    func noTrigger() {
+        #expect(MarkdownTyping.listTrigger(linePrefix: "-") == nil)       // no space yet
+        #expect(MarkdownTyping.listTrigger(linePrefix: "-  ") == nil)     // extra space
+        #expect(MarkdownTyping.listTrigger(linePrefix: "a. ") == nil)     // not a number
+        #expect(MarkdownTyping.listTrigger(linePrefix: "1.") == nil)      // no space yet
+        #expect(MarkdownTyping.listTrigger(linePrefix: "x - ") == nil)    // mid-line
+    }
+
+    @Test("typing [ ] on a fresh bullet upgrades it to a checkbox")
+    func upgrade() {
+        #expect(MarkdownTyping.checkboxUpgrade(afterBullet: "[ ] ") == .checkbox(checked: false))
+        #expect(MarkdownTyping.checkboxUpgrade(afterBullet: "[] ") == .checkbox(checked: false))
+        #expect(MarkdownTyping.checkboxUpgrade(afterBullet: "[x] ") == .checkbox(checked: true))
+        #expect(MarkdownTyping.checkboxUpgrade(afterBullet: "[ ]") == nil)
+        #expect(MarkdownTyping.checkboxUpgrade(afterBullet: "milk ") == nil)
+    }
+}
+
+@Suite("Markdown typing — line markers")
+struct LineMarkerTests {
+
+    @Test("literals for each marker kind")
+    func literals() {
+        #expect(MarkdownTyping.LineMarker.bullet.literal == "\u{2022}\t")
+        #expect(MarkdownTyping.LineMarker.numbered(7).literal == "7.\t")
+        #expect(MarkdownTyping.LineMarker.checkbox(checked: false).literal == "\u{2610}\t")
+        #expect(MarkdownTyping.LineMarker.checkbox(checked: true).literal == "\u{2611}\t")
+    }
+
+    @Test("parse recognizes each marker at paragraph start")
+    func parse() {
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "\u{2022}\tmilk") == .bullet)
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "12.\tdo it") == .numbered(12))
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "\u{2610}\ttask")
+                == .checkbox(checked: false))
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "\u{2611}\tdone")
+                == .checkbox(checked: true))
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "plain line") == nil)
+        #expect(MarkdownTyping.LineMarker.parse(paragraph: "1月\tx") == nil)
+    }
+
+    @Test("continuation: bullet repeats, numbers increment, checkboxes reset")
+    func continuation() {
+        #expect(MarkdownTyping.LineMarker.bullet.continuationLiteral == "\u{2022}\t")
+        #expect(MarkdownTyping.LineMarker.numbered(7).continuationLiteral == "8.\t")
+        #expect(MarkdownTyping.LineMarker.checkbox(checked: true).continuationLiteral
+                == "\u{2610}\t")
+    }
+}

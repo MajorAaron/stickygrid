@@ -88,4 +88,80 @@ public enum MarkdownTyping {
             contentRange: content,
             style: style)
     }
+
+    // MARK: Line markers
+    // Literal marker text + indent is the app's list representation (it
+    // round-trips RTF deterministically — see the bullet design note in
+    // StickyTextView). One type covers list conversion, return-key
+    // continuation, and checkbox toggling.
+
+    public enum LineMarker: Equatable, Sendable {
+        case bullet
+        case numbered(Int)
+        case checkbox(checked: Bool)
+
+        /// The literal marker text at the start of the paragraph.
+        public var literal: String {
+            switch self {
+            case .bullet: return "\u{2022}\t"                       // •
+            case .numbered(let n): return "\(n).\t"
+            case .checkbox(let checked): return checked ? "\u{2611}\t" : "\u{2610}\t"  // ☑ / ☐
+            }
+        }
+
+        /// The marker the return key starts the next line with.
+        public var continuationLiteral: String {
+            switch self {
+            case .bullet: return LineMarker.bullet.literal
+            case .numbered(let n): return LineMarker.numbered(n + 1).literal
+            case .checkbox: return LineMarker.checkbox(checked: false).literal
+            }
+        }
+
+        /// Parses the marker at the start of a paragraph, if any.
+        public static func parse(paragraph: String) -> LineMarker? {
+            if paragraph.hasPrefix(LineMarker.bullet.literal) { return .bullet }
+            if paragraph.hasPrefix("\u{2610}\t") { return .checkbox(checked: false) }
+            if paragraph.hasPrefix("\u{2611}\t") { return .checkbox(checked: true) }
+            let digits = paragraph.prefix(while: { ("0"..."9").contains($0) })
+            guard !digits.isEmpty,
+                  paragraph.dropFirst(digits.count).hasPrefix(".\t"),
+                  let n = Int(digits)
+            else { return nil }
+            return .numbered(n)
+        }
+    }
+
+    // MARK: List triggers
+
+    /// `linePrefix` is the paragraph text from its start through the caret,
+    /// including the just-typed space. A trigger fires only when the marker
+    /// syntax is the entire prefix — i.e. typed at the paragraph start.
+    public static func listTrigger(linePrefix: String) -> LineMarker? {
+        switch linePrefix {
+        case "- ", "* ": return .bullet
+        case "[ ] ", "[] ": return .checkbox(checked: false)
+        case "[x] ", "[X] ": return .checkbox(checked: true)
+        default:
+            guard linePrefix.hasSuffix(". ") else { return nil }
+            let digits = linePrefix.dropLast(2)
+            guard !digits.isEmpty,
+                  digits.allSatisfy({ ("0"..."9").contains($0) }),
+                  let n = Int(digits)
+            else { return nil }
+            return .numbered(n)
+        }
+    }
+
+    /// `- ` becomes a bullet the moment its space lands, so the canonical
+    /// markdown checkbox `- [ ] ` arrives as `[ ] ` typed on a fresh bullet.
+    /// `textAfterBulletMarker` is the text between the bullet marker and the
+    /// caret; an exact checkbox syntax upgrades the bullet.
+    public static func checkboxUpgrade(afterBullet textAfterBulletMarker: String) -> LineMarker? {
+        switch textAfterBulletMarker {
+        case "[ ] ", "[] ": return .checkbox(checked: false)
+        case "[x] ", "[X] ": return .checkbox(checked: true)
+        default: return nil
+        }
+    }
 }
