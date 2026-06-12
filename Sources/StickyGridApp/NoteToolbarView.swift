@@ -155,6 +155,7 @@ struct NoteToolbarView: View {
             ForEach(NoteAIAction.presets) { action in
                 Button(action.title) { viewModel.onAIAction(action) }
             }
+            Button("Suggest Color") { viewModel.onSuggestColor() }
             Divider()
             Button("Ask AI…") { viewModel.onAskAI() }
         } label: {

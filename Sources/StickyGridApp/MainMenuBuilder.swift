@@ -104,6 +104,8 @@ enum MainMenuBuilder {
                                 #selector(WindowManager.aiChecklistNote(_:)), "", windowManager))
         aiMenu.addItem(targeted("Polish Writing",
                                 #selector(WindowManager.aiPolishNote(_:)), "", windowManager))
+        aiMenu.addItem(targeted("Suggest Note Color",
+                                #selector(WindowManager.aiSuggestColorNote(_:)), "", windowManager))
         let askAI = targeted("Ask AI…",
                              #selector(WindowManager.aiAskNote(_:)), "a", windowManager)
         askAI.keyEquivalentModifierMask = [.command, .option]

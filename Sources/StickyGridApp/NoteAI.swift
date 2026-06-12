@@ -1,4 +1,23 @@
 import Foundation
+import StickyGridCore
+
+extension NoteColor {
+    /// Parses a model reply ("green", "Green.", "I'd pick blue because…")
+    /// into a palette color. When several colors are named, the earliest
+    /// mention wins. Accepts the "grey" spelling. Nil when no color is named.
+    init?(aiReply: String) {
+        let reply = aiReply.lowercased()
+        let candidates: [(name: String, color: NoteColor)] =
+            NoteColor.allCases.map { ($0.rawValue, $0) } + [("grey", .gray)]
+        let earliest = candidates
+            .compactMap { candidate in
+                reply.range(of: candidate.name).map { (range: $0, color: candidate.color) }
+            }
+            .min { $0.range.lowerBound < $1.range.lowerBound }
+        guard let earliest else { return nil }
+        self = earliest.color
+    }
+}
 
 /// One of the AI transforms a note's text can be run through.
 enum NoteAIAction: Identifiable, Equatable {
@@ -152,6 +171,36 @@ enum NoteAI {
 
     /// Runs the note text through the action's prompt and returns the new text.
     static func transform(_ text: String, action: NoteAIAction) async throws -> String {
+        try await complete(system: action.systemPrompt, user: text)
+    }
+
+    /// Picks the palette color that best fits the note's content.
+    static func suggestColor(for text: String) async throws -> NoteColor {
+        let reply = try await complete(system: colorSystemPrompt, user: text)
+        guard let color = NoteColor(aiReply: reply) else { throw NoteAIError.badResponse }
+        return color
+    }
+
+    /// Built from `NoteColor.allCases` so a new palette color can't be forgotten.
+    static var colorSystemPrompt: String {
+        let names = NoteColor.allCases.map(\.rawValue).joined(separator: ", ")
+        return """
+            You assign a sticky-note color based on the note's text. The \
+            available colors are: \(names).
+
+            Guidance: yellow for general notes, pink for personal or fun, \
+            blue for reference or technical, green for shopping or money or \
+            done-ness, purple for ideas and creative work, orange for urgent \
+            or deadline-driven, gray for archival or low-priority, white for \
+            drafts and plain documents.
+
+            Reply with exactly one word: the color name. No punctuation, no \
+            explanation.
+            """
+    }
+
+    /// One Messages-API round trip: system prompt + user text → reply text.
+    private static func complete(system: String, user: String) async throws -> String {
         guard let key = apiKey() else { throw NoteAIError.missingKey }
 
         let model = UserDefaults.standard.string(forKey: "AIModel") ?? defaultModel
@@ -164,8 +213,8 @@ enum NoteAI {
         request.httpBody = try JSONEncoder().encode(Request(
             model: model,
             max_tokens: 16000,
-            system: action.systemPrompt,
-            messages: [.init(role: "user", content: text)]))
+            system: system,
+            messages: [.init(role: "user", content: user)]))
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
