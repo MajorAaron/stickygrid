@@ -70,6 +70,7 @@ final class StickyTextView: NSTextView {
     override func didChangeText() {
         super.didChangeText()
         restyleHeader()
+        restyleLinks()
     }
 
     func restyleHeader() {

@@ -44,6 +44,11 @@ enum MainMenuBuilder {
             #selector(WindowManager.copyFrontNoteAsMarkdown(_:)), "c", windowManager)
         copyMarkdown.keyEquivalentModifierMask = [.command, .option]
         fileMenu.addItem(copyMarkdown)
+        let copyLink = targeted(
+            "Copy Link to Note",
+            #selector(WindowManager.copyFrontNoteLink(_:)), "c", windowManager)
+        copyLink.keyEquivalentModifierMask = [.command, .option, .shift]
+        fileMenu.addItem(copyLink)
         let exportMarkdown = targeted(
             "Export Note as Markdown…",
             #selector(WindowManager.exportFrontNoteAsMarkdown(_:)), "e", windowManager)
