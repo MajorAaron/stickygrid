@@ -94,6 +94,22 @@ struct MarkdownImportTests {
         ])
     }
 
+    @Test("> lines map to quote markers with inline spans parsed")
+    func quotes() {
+        let lines = MarkdownImport.parse("> wise *words*\n> more")
+        #expect(lines == [
+            Line(marker: .quote, runs: [plain("wise "), Run(text: "words", italic: true)]),
+            Line(marker: .quote, runs: [plain("more")]),
+        ])
+        #expect(MarkdownImport.detectsMarkdown("> just a quote"))
+    }
+
+    @Test("a > without a space is not a quote")
+    func quoteNeedsSpace() {
+        #expect(MarkdownImport.parse(">no space") ==
+                [Line(marker: nil, runs: [plain(">no space")])])
+    }
+
     @Test("headings strip the #s and render bold")
     func headings() {
         let lines = MarkdownImport.parse("# Title\n### Sub *it*")
@@ -134,7 +150,7 @@ struct MarkdownImportTests {
 
     @Test("export round-trips through import for body content")
     func roundTrip() {
-        let md = "get **milk** and *jam*\n- bread\n1. first\n- [x] done\n`let x`"
+        let md = "get **milk** and *jam*\n- bread\n1. first\n- [x] done\n> quoted\n`let x`"
         let lines = MarkdownImport.parse(md)
         let paragraphs = lines.map { line -> [Run] in
             guard let marker = line.marker else { return line.runs }

@@ -99,6 +99,7 @@ public enum MarkdownTyping {
         case bullet
         case numbered(Int)
         case checkbox(checked: Bool)
+        case quote
 
         /// The literal marker text at the start of the paragraph.
         public var literal: String {
@@ -106,6 +107,7 @@ public enum MarkdownTyping {
             case .bullet: return "\u{2022}\t"                       // •
             case .numbered(let n): return "\(n).\t"
             case .checkbox(let checked): return checked ? "\u{2611}\t" : "\u{2610}\t"  // ☑ / ☐
+            case .quote: return "\u{258E}\t"                        // ▎ quote bar
             }
         }
 
@@ -115,6 +117,7 @@ public enum MarkdownTyping {
             case .bullet: return LineMarker.bullet.literal
             case .numbered(let n): return LineMarker.numbered(n + 1).literal
             case .checkbox: return LineMarker.checkbox(checked: false).literal
+            case .quote: return LineMarker.quote.literal
             }
         }
 
@@ -123,6 +126,7 @@ public enum MarkdownTyping {
             if paragraph.hasPrefix(LineMarker.bullet.literal) { return .bullet }
             if paragraph.hasPrefix("\u{2610}\t") { return .checkbox(checked: false) }
             if paragraph.hasPrefix("\u{2611}\t") { return .checkbox(checked: true) }
+            if paragraph.hasPrefix(LineMarker.quote.literal) { return .quote }
             let digits = paragraph.prefix(while: { ("0"..."9").contains($0) })
             guard !digits.isEmpty,
                   paragraph.dropFirst(digits.count).hasPrefix(".\t"),
@@ -140,6 +144,7 @@ public enum MarkdownTyping {
     public static func listTrigger(linePrefix: String) -> LineMarker? {
         switch linePrefix {
         case "- ", "* ": return .bullet
+        case "> ": return .quote
         case "[ ] ", "[] ": return .checkbox(checked: false)
         case "[x] ", "[X] ": return .checkbox(checked: true)
         default:

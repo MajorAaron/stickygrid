@@ -60,6 +60,9 @@ public enum MarkdownImport {
             }
             return (.bullet, rest)
         }
+        if line.hasPrefix("> ") {
+            return (.quote, String(line.dropFirst(2)))
+        }
         let digits = line.prefix(while: { ("0"..."9").contains($0) })
         if !digits.isEmpty, line.dropFirst(digits.count).hasPrefix(". "),
            let n = Int(digits) {

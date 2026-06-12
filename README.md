@@ -15,10 +15,12 @@ fills your screen.
   bullet lists ⇧⌘L (with automatic continuation on return)
 - Markdown typing shortcuts: `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``
   convert as you type; `- `, `1. `, and `- [ ] ` start bullet, numbered, and
-  clickable-checkbox lists. Markers vanish; ⌘Z brings them back.
+  clickable-checkbox lists, and `> ` starts a blockquote with a quote bar.
+  Markers vanish; ⌘Z brings them back. Return continues lists and quotes;
+  return on an empty item exits.
 - Markdown paste: ⌘V a block of markdown (from a chat reply, a README, another
-  notes app) and the same styles, lists, checkboxes, and headings convert on
-  the way in. Plain text without markdown pastes untouched.
+  notes app) and the same styles, lists, checkboxes, quotes, and headings
+  convert on the way in. Plain text without markdown pastes untouched.
 - The first line of every note is its title — automatically bold and larger,
   so a wall of notes stays scannable
 - Per-note font family and size
