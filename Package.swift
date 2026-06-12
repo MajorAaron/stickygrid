@@ -6,10 +6,12 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [
         .executable(name: "StickyGrid", targets: ["StickyGridApp"]),
+        .executable(name: "sticky", targets: ["StickyCLI"]),
         .library(name: "StickyGridCore", targets: ["StickyGridCore"]),
     ],
     targets: [
         .target(name: "StickyGridCore"),
+        .executableTarget(name: "StickyCLI", dependencies: ["StickyGridCore"]),
         .executableTarget(
             name: "StickyGridApp",
             dependencies: ["StickyGridCore"],

@@ -55,6 +55,22 @@ public struct CaptureRequest: Equatable, Sendable {
                               hasExplicitTitle: !(title ?? "").isEmpty)
     }
 
+    /// Builds a `stickygrid://new` URL — the exact inverse of `from(url:)`,
+    /// used by the `sticky` CLI. Nil and empty parameters are omitted;
+    /// nothing at all yields the bare empty-note URL. URLComponents does
+    /// the percent-encoding.
+    public static func captureURL(body: String?, title: String?, color: NoteColor?) -> URL {
+        var components = URLComponents()
+        components.scheme = "stickygrid"
+        components.host = "new"
+        var items: [URLQueryItem] = []
+        if let title, !title.isEmpty { items.append(URLQueryItem(name: "title", value: title)) }
+        if let body, !body.isEmpty { items.append(URLQueryItem(name: "text", value: body)) }
+        if let color { items.append(URLQueryItem(name: "color", value: color.rawValue)) }
+        components.queryItems = items.isEmpty ? nil : items
+        return components.url!
+    }
+
     /// Wraps pasteboard/selection text; nil if there is nothing but whitespace.
     public static func from(plainText: String?) -> CaptureRequest? {
         guard let trimmed = plainText?.trimmingCharacters(in: .whitespacesAndNewlines),
