@@ -7,14 +7,15 @@ import Foundation
 /// Positional words join into the body; no positionals leaves the body nil
 /// so the executable can fill it from stdin.
 ///
-/// A first argument of exactly `list`, `cat`, or `export` dispatches the
-/// read-only subcommands instead (`sticky -- list` escapes back to capture).
+/// A first argument of exactly `list`, `cat`, `open`, or `export` dispatches
+/// the subcommands instead (`sticky -- list` escapes back to capture).
 public enum CaptureCommand: Equatable, Sendable {
     case help
     case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool,
              markdown: Bool)
     case list
     case cat(query: String, markdown: Bool)
+    case open(query: String, printOnly: Bool)
     case export(directory: String)
 
     public enum ParseError: Error, Equatable {
@@ -45,6 +46,23 @@ public enum CaptureCommand: Equatable, Sendable {
             }
             guard !queryWords.isEmpty else { throw .missingValue("cat") }
             return .cat(query: queryWords.joined(separator: " "), markdown: markdown)
+        case "open":
+            // Same scanning rule as cat: only --print is an option, `--`
+            // escapes it, other dashed words stay query text.
+            var printOnly = false
+            var scanningFlags = true
+            var queryWords: [String] = []
+            for arg in args.dropFirst() {
+                if scanningFlags, arg == "--" {
+                    scanningFlags = false
+                } else if scanningFlags, arg == "--print" {
+                    printOnly = true
+                } else {
+                    queryWords.append(arg)
+                }
+            }
+            guard !queryWords.isEmpty else { throw .missingValue("open") }
+            return .open(query: queryWords.joined(separator: " "), printOnly: printOnly)
         case "export":
             // Exactly one directory; a path with spaces is one shell-quoted
             // argument, so a second positional is always a mistake. A

@@ -43,11 +43,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleCapture(urls: [URL]) {
         for url in urls {
-            guard let request = CaptureRequest.from(url: url) else {
+            if let open = OpenRequest.from(url: url) {
+                windowManager.focusNote(query: open.query)
+            } else if let request = CaptureRequest.from(url: url) {
+                windowManager.createNote(from: request)
+            } else {
                 NSLog("StickyGrid: ignoring unrecognized URL \(url)")
-                continue
             }
-            windowManager.createNote(from: request)
         }
     }
 

@@ -823,6 +823,20 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// Raises the note a `stickygrid://open?note=<query>` deep link points
+    /// at. Ambiguity resolves via `NoteListing.bestMatch` (pinned first,
+    /// then frontmost) — a link should always land somewhere useful.
+    func focusNote(query: String) {
+        guard let record = NoteListing.bestMatch(query, in: Array(store.records.values)),
+              let panel = panels[record.id] else {
+            NSLog("StickyGrid: no note matching open query \"\(query)\"")
+            NSSound.beep()
+            return
+        }
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     // MARK: Window delegate (frame tracking)
 
     func windowDidMove(_ notification: Notification) {
