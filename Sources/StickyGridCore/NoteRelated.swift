@@ -61,6 +61,61 @@ public enum NoteRelated {
         return ids
     }
 
+    /// UTF-16 ranges of every rendered Related section in note plain text —
+    /// `relatedMarkdown`'s inverse across the insertMarkdown render
+    /// boundary, recomputed live so a re-run can replace instead of stack.
+    /// A section is a line reading exactly `Related:` plus one or more
+    /// bullet lines carrying a stickygrid deep link; a `Related:` line over
+    /// prose is the user's text and never matches. Each range also claims
+    /// the newline run just before the section (or, when the section starts
+    /// the note, just after) but stops at the last bullet's content, so
+    /// removal neither stacks blank lines nor swallows the gap in front of
+    /// any text below.
+    public static func sectionRanges(in text: String) -> [NSRange] {
+        let ns = text as NSString
+        let bullet = MarkdownTyping.LineMarker.bullet.literal
+        var lines: [(content: NSRange, full: NSRange)] = []
+        var index = 0
+        while index < ns.length {
+            var start = 0, end = 0, contentsEnd = 0
+            ns.getLineStart(&start, end: &end, contentsEnd: &contentsEnd,
+                            for: NSRange(location: index, length: 0))
+            lines.append((NSRange(location: start, length: contentsEnd - start),
+                          NSRange(location: start, length: end - start)))
+            index = end
+        }
+
+        func isLinkBullet(_ content: NSRange) -> Bool {
+            let line = ns.substring(with: content)
+            return line.hasPrefix(bullet) && line.contains("stickygrid://open?note=")
+        }
+
+        var ranges: [NSRange] = []
+        var i = 0
+        while i < lines.count {
+            let header = lines[i]
+            let title = ns.substring(with: header.content)
+                .trimmingCharacters(in: .whitespaces)
+            guard title == "Related:" else { i += 1; continue }
+            var last = i
+            while last + 1 < lines.count, isLinkBullet(lines[last + 1].content) {
+                last += 1
+            }
+            guard last > i else { i += 1; continue }
+
+            var start = header.full.location
+            var end = NSMaxRange(lines[last].content)
+            if start > 0 {
+                while start > 0, ns.character(at: start - 1) == 0x0A { start -= 1 }
+            } else {
+                while end < ns.length, ns.character(at: end) == 0x0A { end += 1 }
+            }
+            ranges.append(NSRange(location: start, length: end - start))
+            i = last + 1
+        }
+        return ranges
+    }
+
     /// The markdown appended to the note, or nil when there is nothing to
     /// append. Title first — this section is for rereading, so scannability
     /// beats the bare-URL style of Ask Your Notes sources; only the URL run

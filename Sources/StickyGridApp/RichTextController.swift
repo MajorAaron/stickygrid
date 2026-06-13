@@ -127,6 +127,26 @@ final class RichTextController {
         tv.insertMarkdown(storage.length == 0 ? markdown : "\n\n" + markdown)
     }
 
+    /// Replaces any existing Related sections with a fresh one — re-running
+    /// Find Related refreshes instead of stacking, and notes that stacked
+    /// duplicates before this shipped self-heal. Sections are recomputed
+    /// from the live text (the restyleLinks philosophy: nothing stored to
+    /// go stale); deletions run in reverse so earlier ranges stay valid,
+    /// and they share appendMarkdown's runloop turn, so the whole swap is
+    /// one undo.
+    func replaceRelated(_ markdown: String) {
+        if let tv = textView, let storage = tv.textStorage {
+            for range in NoteRelated.sectionRanges(in: storage.string).reversed() {
+                guard tv.shouldChangeText(in: range, replacementString: "") else { continue }
+                storage.beginEditing()
+                storage.replaceCharacters(in: range, with: "")
+                storage.endEditing()
+                tv.didChangeText()
+            }
+        }
+        appendMarkdown(markdown)
+    }
+
     /// Replaces the whole note body with plain text styled in the note's
     /// current font and ink. Goes through shouldChangeText/didChangeText so
     /// the swap is undoable and the header restyle + autosave fire.

@@ -212,12 +212,15 @@ sticky note with the question as its title and a **Sources** section of
 `stickygrid://open` links; click one to jump to the note it came from.
 
 **Find Related Notes** (sparkles or **AI** menu) turns a single note into a
-hub: the AI reads every *other* note and appends a **Related** section to
+hub: the AI reads every *other* note and writes a **Related** section into
 this one — a bullet per related note, its title plus a clickable
-`stickygrid://open` link. Links are validated against the notes that
-actually exist (an invented link never survives), the append is one ⌘Z
-undo, and a "nothing related" reply tells you so instead of silently doing
-nothing. Those links work in both directions: the Notes menu's **Linked
+`stickygrid://open` link. Re-running it *replaces* the existing section
+(the grid changed; the links refresh rather than stack — and the section
+is re-found from the live text, so this works even on notes that stacked
+duplicates before). Links are validated against the notes that actually
+exist (an invented link never survives), the whole swap is one ⌘Z undo,
+and a "nothing related" reply tells you so instead of silently doing
+nothing — it also leaves any existing Related section alone. Those links work in both directions: the Notes menu's **Linked
 Here** section (no AI involved) shows the notes that link *to* the front
 note, so a hub's spokes know their way back.
 

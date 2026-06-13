@@ -86,6 +86,69 @@ struct RelatedNotesTests {
         #expect(NoteRelated.relatedMarkdown(for: []) == nil)
     }
 
+    // MARK: sectionRanges(in:) — rendered-section detection for replace
+
+    /// A rendered Related section as it sits in note plain text after
+    /// insertMarkdown: bullets are the LineMarker literal, not `- `.
+    func rendered(_ titles: [(String, UUID)]) -> String {
+        "Related:\n" + titles.map { "\u{2022}\t\($0.0) — \(link($0.1))" }
+            .joined(separator: "\n")
+    }
+
+    func removing(_ text: String) -> String {
+        var result = text as NSString
+        for range in NoteRelated.sectionRanges(in: text).reversed() {
+            result = result.replacingCharacters(in: range, with: "") as NSString
+        }
+        return result as String
+    }
+
+    @Test("text without a section yields no ranges")
+    func noSection() {
+        #expect(NoteRelated.sectionRanges(in: "Title\nbody text") == [])
+        #expect(NoteRelated.sectionRanges(in: "") == [])
+    }
+
+    @Test("a trailing section is removed along with its blank-line gap")
+    func trailingSection() {
+        let text = "Title\nbody\n\n" + rendered([("Plan", a), ("List", b)])
+        #expect(removing(text) == "Title\nbody")
+    }
+
+    @Test("a section at the start of the note is found")
+    func leadingSection() {
+        let text = rendered([("Plan", a)]) + "\nuser text after"
+        #expect(removing(text) == "user text after")
+    }
+
+    @Test("user text after a mid-note section survives")
+    func midNoteSection() {
+        // The range claims the gap BEFORE the section but stops at the
+        // last bullet's content, so the following text keeps its own gap.
+        let text = "Title\n\n" + rendered([("Plan", a)]) + "\n\nmore thoughts"
+        #expect(removing(text) == "Title\n\nmore thoughts")
+    }
+
+    @Test("stacked duplicate sections are all found")
+    func stackedSections() {
+        let text = "Title\n\n" + rendered([("Plan", a)]) + "\n\n"
+            + rendered([("List", b)])
+        #expect(NoteRelated.sectionRanges(in: text).count == 2)
+        #expect(removing(text) == "Title")
+    }
+
+    @Test("a Related: line over prose is not a section")
+    func proseNotSection() {
+        let text = "Related:\njust some prose the user typed"
+        #expect(NoteRelated.sectionRanges(in: text) == [])
+    }
+
+    @Test("a bullet without a deep link ends the section and survives")
+    func plainBulletEndsSection() {
+        let text = "T\n\n" + rendered([("Plan", a)]) + "\n\u{2022}\tmy own bullet"
+        #expect(removing(text) == "T\n\u{2022}\tmy own bullet")
+    }
+
     // MARK: prompts
 
     @Test("user message carries the note above the corpus context")
