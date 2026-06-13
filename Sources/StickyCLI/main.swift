@@ -13,6 +13,7 @@ usage: sticky [options] [--] [words...]
        sticky cat [-m] <id-prefix or title words>
        sticky open [--print] <id-prefix or title words>
        sticky export <dir>
+       sticky backlinks <id-prefix or title words>
 
 Creates a StickyGrid note. Words join into the note body; with no words,
 the body is read from piped stdin. `list`, `cat`, and `export` read your
@@ -20,7 +21,8 @@ existing notes (read-only); use `sticky -- list` to capture the word "list".
 `open` raises the matching note's window; with --print it prints a durable
 stickygrid://open link to embed in other apps instead. `export` writes
 every note as a markdown file into <dir> (created if missing) — handy for
-backups, grep, or an Obsidian vault.
+backups, grep, or an Obsidian vault. `backlinks` lists the notes whose
+text links TO the matching note, in `sticky list` format.
 
 options:
   -t, --title <text>   first line of the note
@@ -37,6 +39,7 @@ examples:
   sticky cat -m release | sticky -m -t "Release (copy)"
   sticky open release
   sticky export ~/Documents/sticky-backup
+  sticky backlinks "Trip Plan"
 """
 
 func fail(_ message: String, code: Int32) -> Never {
@@ -152,6 +155,28 @@ case .open(let query, let printOnly):
             print(url.absoluteString)
         } else {
             launch(url)
+        }
+        exit(0)
+    }
+case .backlinks(let query):
+    let records = loadRecords()
+    switch NoteListing.match(query, in: records) {
+    case .none:
+        fail("sticky: no note matching \"\(query)\"", code: 1)
+    case .many(let hits):
+        let lines = NoteListing.lines(for: hits).joined(separator: "\n")
+        fail("sticky: \"\(query)\" matches several notes:\n" + lines, code: 1)
+    case .one(let record):
+        // Bodies come from the RTF on disk — the CLI's view of the store,
+        // untruncated, exactly what the Linked Here menu reads live.
+        let backlinks = NoteBacklinks.records(linkingTo: record.id, in: records) {
+            loadText(id: $0)?.string
+        }
+        if backlinks.isEmpty {
+            let title = record.titleSnippet.isEmpty ? "Untitled" : record.titleSnippet
+            print("no notes link to \"\(title)\"")
+        } else {
+            NoteListing.lines(for: backlinks).forEach { print($0) }
         }
         exit(0)
     }

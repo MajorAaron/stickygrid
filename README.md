@@ -141,6 +141,7 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   sticky open groceries     # raise that note's window
   sticky open --print plan  # print a durable stickygrid://open link instead
   sticky export ~/notes     # every note as a .md file — backup, grep, Obsidian
+  sticky backlinks plan     # which notes link TO this one (Linked Here, in shell)
   ```
 
   `cat` matches an id prefix or a title substring and insists on a unique
@@ -159,9 +160,13 @@ Six ways to get text into a sticky without switching to StickyGrid first:
   you can embed anywhere that speaks URLs (an Obsidian page, a calendar
   event, a script): opening it later raises that exact sticky. Other apps
   can also link by title: `stickygrid://open?note=groceries` focuses the
-  best title match (pinned notes win ties). To capture a note whose body
-  starts with the word "list", "cat", "open", or "export", escape with
-  `sticky -- list`. Build and install it with:
+  best title match (pinned notes win ties). `backlinks` is the shell twin
+  of the Notes menu's Linked Here section: it resolves a note like `cat`
+  does, then lists the notes whose text links *to* it, in `sticky list`
+  format — handy before deleting a note or for feeding a graph tool. To
+  capture a note whose body starts with the word "list", "cat", "open",
+  "export", or "backlinks", escape with `sticky -- list`. Build and
+  install it with:
 
   ```bash
   swift build -c release --product sticky
