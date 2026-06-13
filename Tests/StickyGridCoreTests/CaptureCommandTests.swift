@@ -204,6 +204,36 @@ struct CaptureCommandTests {
         }
     }
 
+    @Test("first argument backlinks joins the rest into one query")
+    func backlinksSubcommand() throws {
+        #expect(try CaptureCommand.parse(["backlinks", "groceries"])
+                == .backlinks(query: "groceries"))
+        #expect(try CaptureCommand.parse(["backlinks", "release", "notes"])
+                == .backlinks(query: "release notes"))
+    }
+
+    @Test("backlinks keeps dashed words as query text; -- escapes too")
+    func backlinksDashedQuery() throws {
+        #expect(try CaptureCommand.parse(["backlinks", "to-do"])
+                == .backlinks(query: "to-do"))
+        #expect(try CaptureCommand.parse(["backlinks", "--", "-m"])
+                == .backlinks(query: "-m"))
+    }
+
+    @Test("backlinks with no query is a usage error")
+    func backlinksNeedsQuery() {
+        #expect(throws: CaptureCommand.ParseError.missingValue("backlinks")) {
+            try CaptureCommand.parse(["backlinks"])
+        }
+    }
+
+    @Test("-- backlinks is still a captured note body, not a subcommand")
+    func dashDashEscapesBacklinks() throws {
+        #expect(try CaptureCommand.parse(["--", "backlinks"])
+                == .new(body: "backlinks", title: nil, color: nil, printOnly: false,
+                        markdown: false))
+    }
+
     @Test("-- open is still a captured note body, not a subcommand")
     func dashDashEscapesOpen() throws {
         #expect(try CaptureCommand.parse(["--", "open"])
