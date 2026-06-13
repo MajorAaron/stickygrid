@@ -123,10 +123,10 @@ struct RelatedNotesTests {
 
     @Test("user text after a mid-note section survives")
     func midNoteSection() {
-        // The preceding gap travels with the section, so the text that
-        // followed keeps its own newline and lands one line below Title.
+        // The range claims the gap BEFORE the section but stops at the
+        // last bullet's content, so the following text keeps its own gap.
         let text = "Title\n\n" + rendered([("Plan", a)]) + "\n\nmore thoughts"
-        #expect(removing(text) == "Title\nmore thoughts")
+        #expect(removing(text) == "Title\n\nmore thoughts")
     }
 
     @Test("stacked duplicate sections are all found")

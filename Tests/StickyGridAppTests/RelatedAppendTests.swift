@@ -104,6 +104,21 @@ struct RelatedAppendTests {
         #expect(tv.string.contains("Related:\n\u{2022}\tList — \(url2)"))
     }
 
+    @Test("one undo reverts the whole replace")
+    func undoRevertsReplace() {
+        let (controller, tv) = makeController()
+        let host = UndoHost()
+        tv.delegate = host
+        tv.allowsUndo = true
+        tv.insertText("T\nbody", replacementRange: tv.selectedRange())
+        controller.appendMarkdown("Related:\n- Plan — \(url)")
+        let before = tv.string
+        host.undo.removeAllActions()
+        controller.replaceRelated("Related:\n- List — \(url2)")
+        host.undo.undo()
+        #expect(tv.string == before)
+    }
+
     @Test("the fresh section's deep link is clickable")
     func replacedLinkRestyled() {
         let (controller, tv) = makeController()

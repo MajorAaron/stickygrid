@@ -498,8 +498,9 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
         }
     }
 
-    /// Reads the rest of the grid and appends a Related section of deep
-    /// links to the note. Mirrors performSuggestTitle's guards; the reply
+    /// Reads the rest of the grid and writes a Related section of deep
+    /// links to the note — replacing any existing one, so re-runs refresh
+    /// instead of stacking. Mirrors performSuggestTitle's guards; the reply
     /// is parsed and validated by NoteRelated.ids, so invented links die
     /// here. An explicit "nothing found" alert beats silence, which would
     /// read as a hang.
@@ -526,7 +527,7 @@ final class WindowManager: NSObject, NSWindowDelegate, NSMenuDelegate {
             let ids = NoteRelated.ids(fromReply: reply, valid: Set(sources.map(\.id)))
             let related = ids.compactMap { id in sources.first { $0.id == id } }
             if let markdown = NoteRelated.relatedMarkdown(for: related) {
-                viewModel.textController.appendMarkdown(markdown)
+                viewModel.textController.replaceRelated(markdown)
             } else {
                 let alert = NSAlert()
                 alert.messageText = "No related notes found"

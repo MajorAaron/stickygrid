@@ -44,11 +44,11 @@ line with no qualifying bullet under it is **not** a section — a user
 who typed `Related:` over prose keeps their text. A bullet without a
 deep link ends the section and survives.
 
-The reported range also consumes the run of blank lines (and the
-newline) immediately *before* `Related:`, so delete-then-append doesn't
-grow a ladder of blank separators, and it includes the section's
-trailing newline when one exists so no empty line is left behind
-mid-note.
+The reported range claims the newline run immediately *before*
+`Related:` (or, when the section starts the note, the run immediately
+after the last bullet) and ends at the last bullet's content — not its
+terminator. Delete-then-append therefore doesn't grow a ladder of blank
+separators, and text below a mid-note section keeps its own gap.
 
 ## Components
 
