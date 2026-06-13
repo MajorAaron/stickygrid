@@ -7,8 +7,9 @@ import Foundation
 /// Positional words join into the body; no positionals leaves the body nil
 /// so the executable can fill it from stdin.
 ///
-/// A first argument of exactly `list`, `cat`, `open`, or `export` dispatches
-/// the subcommands instead (`sticky -- list` escapes back to capture).
+/// A first argument of exactly `list`, `cat`, `open`, `export`, or
+/// `backlinks` dispatches the subcommands instead (`sticky -- list`
+/// escapes back to capture).
 public enum CaptureCommand: Equatable, Sendable {
     case help
     case new(body: String?, title: String?, color: NoteColor?, printOnly: Bool,
@@ -17,6 +18,7 @@ public enum CaptureCommand: Equatable, Sendable {
     case cat(query: String, markdown: Bool)
     case open(query: String, printOnly: Bool)
     case export(directory: String)
+    case backlinks(query: String)
 
     public enum ParseError: Error, Equatable {
         case unknownOption(String)
@@ -63,6 +65,20 @@ public enum CaptureCommand: Equatable, Sendable {
             }
             guard !queryWords.isEmpty else { throw .missingValue("open") }
             return .open(query: queryWords.joined(separator: " "), printOnly: printOnly)
+        case "backlinks":
+            // No options here at all, but the cat-style leading `--`
+            // escape keeps dashed words usable as query text.
+            var scanningFlags = true
+            var queryWords: [String] = []
+            for arg in args.dropFirst() {
+                if scanningFlags, arg == "--" {
+                    scanningFlags = false
+                } else {
+                    queryWords.append(arg)
+                }
+            }
+            guard !queryWords.isEmpty else { throw .missingValue("backlinks") }
+            return .backlinks(query: queryWords.joined(separator: " "))
         case "export":
             // Exactly one directory; a path with spaces is one shell-quoted
             // argument, so a second positional is always a mistake. A
