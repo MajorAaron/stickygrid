@@ -60,6 +60,62 @@ struct RelatedAppendTests {
         #expect(tv.string == "T\nbody")
     }
 
+    // MARK: replaceRelated — re-runs refresh instead of stacking
+
+    let url2 = "stickygrid://open?note=9a1832c0-55c4-4d6a-8d3b-6a4f7f0a8f11"
+
+    @Test("replaceRelated swaps the old section for the new one")
+    func replacesOldSection() {
+        let (controller, tv) = makeController()
+        tv.insertText("T\nbody", replacementRange: tv.selectedRange())
+        controller.appendMarkdown("Related:\n- Plan — \(url)")
+        controller.replaceRelated("Related:\n- List — \(url2)")
+        #expect(tv.string == "T\nbody\n\nRelated:\n\u{2022}\tList — \(url2)")
+    }
+
+    @Test("replaceRelated without an existing section behaves like append")
+    func replaceIsAppendWhenNoSection() {
+        let (controller, tv) = makeController()
+        tv.insertText("T\nbody", replacementRange: tv.selectedRange())
+        controller.replaceRelated("Related:\n- Plan — \(url)")
+        #expect(tv.string == "T\nbody\n\nRelated:\n\u{2022}\tPlan — \(url)")
+    }
+
+    @Test("stacked duplicate sections collapse to the fresh one")
+    func collapsesStackedSections() {
+        let (controller, tv) = makeController()
+        tv.insertText("T\nbody", replacementRange: tv.selectedRange())
+        controller.appendMarkdown("Related:\n- Plan — \(url)")
+        controller.appendMarkdown("Related:\n- Plan — \(url)")
+        controller.replaceRelated("Related:\n- List — \(url2)")
+        #expect(tv.string == "T\nbody\n\nRelated:\n\u{2022}\tList — \(url2)")
+    }
+
+    @Test("user text typed after the section survives a replace")
+    func keepsTrailingUserText() {
+        let (controller, tv) = makeController()
+        tv.insertText("T\nbody", replacementRange: tv.selectedRange())
+        controller.appendMarkdown("Related:\n- Plan — \(url)")
+        tv.setSelectedRange(NSRange(location: tv.string.utf16.count, length: 0))
+        tv.insertText("\nps. keep me", replacementRange: tv.selectedRange())
+        controller.replaceRelated("Related:\n- List — \(url2)")
+        #expect(tv.string.contains("ps. keep me"))
+        #expect(!tv.string.contains(url))
+        #expect(tv.string.contains("Related:\n\u{2022}\tList — \(url2)"))
+    }
+
+    @Test("the fresh section's deep link is clickable")
+    func replacedLinkRestyled() {
+        let (controller, tv) = makeController()
+        tv.insertText("T\nbody", replacementRange: tv.selectedRange())
+        controller.appendMarkdown("Related:\n- Plan — \(url)")
+        controller.replaceRelated("Related:\n- List — \(url2)")
+        let range = (tv.string as NSString).range(of: url2)
+        let value = tv.textStorage!.attribute(.link, at: range.location,
+                                              effectiveRange: nil)
+        #expect(value != nil)
+    }
+
     @Test("the related corpus is every other non-empty note")
     func corpusExcludesCurrent() {
         let current = NoteRecord(frame: .zero, titleSnippet: "Me")
